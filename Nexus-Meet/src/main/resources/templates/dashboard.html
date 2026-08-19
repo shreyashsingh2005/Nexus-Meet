@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dashboard - Nexus Meet</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #050505;
+  --bg-panel: rgba(20, 20, 25, 0.5);
+  --primary: #4f86f7;
+  --primary-hover: #1a73e8;
+  --text-main: #ffffff;
+  --text-sub: #a0aab5;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Animated Background Orbs */
+.ambient-glow-1 { position: fixed; top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(79,134,247,0.2) 0%, rgba(0,0,0,0) 60%); filter: blur(80px); z-index: 0; animation: float 12s ease-in-out infinite alternate; pointer-events: none; }
+.ambient-glow-2 { position: fixed; bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(94, 53, 177, 0.15) 0%, rgba(0,0,0,0) 60%); filter: blur(100px); z-index: 0; animation: float 15s ease-in-out infinite alternate-reverse; pointer-events: none; }
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 30px) scale(1.05); }
+  100% { transform: translate(-30px, 50px) scale(0.95); }
+}
+
+/* Header */
+#hdr {
+  position: relative; z-index: 10; height: 72px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border-light); background: rgba(5, 5, 5, 0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.logo-mark { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-hover), var(--primary)); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(79, 134, 247, 0.4); border: 1px solid rgba(255,255,255,0.2); }
+.logo-mark svg { width: 18px; height: 18px; fill: #fff; }
+.logo-name { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; color: #fff; }
+.logo-name span { color: var(--primary); }
+
+.user-profile { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 6px 16px 6px 6px; border-radius: 30px; border: 1px solid var(--border-light); transition: 0.3s; cursor: pointer; }
+.user-profile:hover { background: rgba(255,255,255,0.08); border-color: var(--glass-highlight); }
+.av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #8ab4f8); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; font-size: 0.95rem; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.uname { font-size: 0.85rem; font-weight: 500; }
+
+/* Main Content */
+.main-grid { position: relative; z-index: 10; flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; max-width: 1280px; margin: 0 auto; width: 100%; padding: 60px 40px; gap: 60px; align-items: center; }
+
+.left-panel { display: flex; flex-direction: column; gap: 30px; animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Time & Greeting */
+.time-container { margin-bottom: 10px; }
+.time-display { font-size: clamp(3.5rem, 5vw, 5rem); font-weight: 300; letter-spacing: -2px; line-height: 1.1; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.date-display { font-size: 1.15rem; color: var(--text-sub); margin-top: 8px; font-weight: 400; }
+.greeting { font-size: 2.2rem; font-weight: 600; margin-bottom: 20px; line-height: 1.2; }
+.greeting span { background: linear-gradient(to right, #8ab4f8, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* Cards */
+.action-cards { display: flex; gap: 24px; flex-wrap: wrap; }
+
+.card {
+  background: var(--bg-panel); border: 1px solid var(--border-light); border-top: 1px solid var(--glass-highlight);
+  border-radius: 24px; padding: 28px; flex: 1; min-width: 260px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; gap: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3); position: relative; overflow: hidden;
+}
+.card::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent); transform: skewX(-20deg); transition: 0.5s; }
+.card:hover::before { left: 150%; }
+.card:hover { transform: translateY(-8px); border-color: rgba(255,255,255,0.2); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+
+.c-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: 0.3s; }
+.primary-card { background: linear-gradient(145deg, rgba(79,134,247,0.08), rgba(20,20,25,0.6)); border-color: rgba(79, 134, 247, 0.2); }
+.primary-card:hover { border-color: rgba(79, 134, 247, 0.5); box-shadow: 0 20px 50px rgba(79, 134, 247, 0.15); }
+.primary-card .c-icon { background: linear-gradient(135deg, #8ab4f8, var(--primary)); color: #fff; box-shadow: 0 8px 24px rgba(79, 134, 247, 0.4); }
+
+.card h3 { font-size: 1.3rem; font-weight: 600; letter-spacing: -0.5px; }
+.card p { font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; }
+
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 15px rgba(79,134,247,0.3); }
+.btn-primary:hover { background: var(--primary-hover); transform: scale(1.02); box-shadow: 0 8px 25px rgba(79,134,247,0.4); }
+
+.join-input { width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-light); border-radius: 12px; color: #fff; outline: none; font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: 0.3s; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+.join-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 134, 247, 0.15), inset 0 2px 10px rgba(0,0,0,0.5); }
+
+/* Right Panel (Nexus Radar) */
+.right-panel { display: flex; align-items: center; justify-content: center; animation: fadeInScale 1s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+.radar-container { position: relative; width: 100%; max-width: 450px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; }
+
+.radar-circle {
+  position: absolute; border-radius: 50%; border: 1px solid rgba(79, 134, 247, 0.2);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  animation: pulse 4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.rc-1 { width: 30%; height: 30%; border-color: rgba(79, 134, 247, 0.6); animation-delay: 0s; }
+.rc-2 { width: 60%; height: 60%; border-color: rgba(79, 134, 247, 0.4); animation-delay: 1s; }
+.rc-3 { width: 90%; height: 90%; border-color: rgba(79, 134, 247, 0.2); border-style: dashed; animation-delay: 2s; }
+
+.radar-core {
+  position: relative; width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #8ab4f8);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 40px rgba(79, 134, 247, 0.6), inset 0 0 20px rgba(255,255,255,0.5);
+  font-size: 2rem; color: #fff; z-index: 5;
+}
+.radar-core::after {
+  content: ''; position: absolute; inset: -10px; border-radius: 50%; border: 2px solid var(--primary);
+  border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite;
+}
+
+.node { position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 15px #fff; }
+.n1 { top: 20%; left: 20%; animation: floatNode 3s ease-in-out infinite alternate; }
+.n2 { bottom: 25%; right: 15%; animation: floatNode 4s ease-in-out infinite alternate-reverse; }
+.n3 { top: 30%; right: 20%; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: floatNode 3.5s ease-in-out infinite alternate; }
+
+@keyframes pulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes floatNode { 0% { transform: translateY(0); } 100% { transform: translateY(-15px); } }
+
+@media(max-width: 900px){ .main-grid { grid-template-columns: 1fr; } .left-panel { align-items: center; text-align: center; } .action-cards { flex-direction: column; width: 100%; max-width: 420px; } .right-panel { display: none; } }
+@media(max-width: 500px){ #hdr { padding: 0 20px; } .time-display { font-size: 3rem; } .greeting { font-size: 1.8rem; } .main-grid{ padding: 40px 20px; } }
+</style>
+</head>
+<body>
+
+<div class="ambient-glow-1"></div>
+<div class="ambient-glow-2"></div>
+
+<header id="hdr">
+  <a class="logo" href="#">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><rect x="1" y="6" width="14" height="12" rx="2"/><path d="M15 9.5l7-4v13l-7-4V9.5z"/></svg></div>
+    <span class="logo-name">Nexus <span>Meet</span></span>
+  </a>
+  <div class="user-profile">
+    <div class="av"><span id="avLetter" th:text="${#strings.substring(username,0,1)}">U</span></div>
+    <span class="uname" id="uName" th:text="${username}"></span>
+  </div>
+</header>
+
+<main class="main-grid">
+  <div class="left-panel">
+    <div class="time-container">
+      <div class="time-display" id="clock">--:-- --</div>
+      <div class="date-display" id="date">--</div>
+    </div>
+    
+    <div class="greeting" id="greetingMsg">Welcome back, <span>Guest</span>!</div>
+
+    <div class="action-cards">
+      <!-- New Meeting Card -->
+      <div class="card primary-card">
+        <div class="c-icon"><i class="fa-solid fa-video"></i></div>
+        <div>
+          <h3>New Meeting</h3>
+          <p>Create a secure, premium video meeting instantly.</p>
+        </div>
+        <button class="btn btn-primary" onclick="createMeeting()"><i class="fa-solid fa-plus"></i> Start Meeting</button>
+      </div>
+
+      <!-- Join Meeting Card (Now matches New Meeting styling) -->
+      <div class="card primary-card">
+        <div class="c-icon"><i class="fa-regular fa-keyboard"></i></div>
+        <div>
+          <h3>Join Meeting</h3>
+          <p>Enter a meeting code or link to join.</p>
+        </div>
+        <input type="text" id="joinId" class="join-input" placeholder="e.g. nexus-abc-xyz" onkeypress="if(event.key==='Enter') joinMeeting()">
+        <button class="btn btn-primary" onclick="joinMeeting()">Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nexus Radar Animation -->
+  <div class="right-panel">
+    <div class="radar-container">
+      <div class="radar-circle rc-1"></div>
+      <div class="radar-circle rc-2"></div>
+      <div class="radar-circle rc-3"></div>
+      
+      <div class="node n1"></div>
+      <div class="node n2"></div>
+      <div class="node n3"></div>
+      
+      <div class="radar-core">
+        <i class="fa-solid fa-video"></i>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    
+    const hour = now.getHours();
+    let greet = 'Good evening';
+    if (hour < 12) greet = 'Good morning';
+    else if (hour < 17) greet = 'Good afternoon';
+    
+    let rawName = document.getElementById('uName').innerText.trim();
+    if (!rawName || rawName === "" || rawName.includes("${")) {
+        rawName = "Guest";
+        document.getElementById('avLetter').innerText = "G";
+        document.getElementById('uName').innerText = rawName;
+    }
+    
+    document.getElementById('greetingMsg').innerHTML = `${greet}, <span>${rawName}</span>!`;
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  function createMeeting() {
+    const randomId = 'nexus-' + Math.random().toString(36).substring(2, 9);
+    window.location.href = `/room?id=${randomId}`;
+  }
+
+  function joinMeeting() {
+    const id = document.getElementById('joinId').value.trim();
+    if (id) {
+      window.location.href = `/room?id=${id}`;
+    } else {
+      alert('Please enter a valid room ID');
+    }
+  }
+</script>
+</body>
+</html>

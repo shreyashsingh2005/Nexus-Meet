@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Meeting Room - Nexus Meet Pro</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   NEXUS MEET PRO — ULTRA ADVANCED EDITION
+   50+ User Mesh | Adaptive Bitrate | Premium Glassmorphism
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --bg-dark: #030305;
+  --bg-panel: rgba(8, 12, 21, 0.92);
+  --bg-tile: #07080d;
+  --bg-tile-hover: #0d0f18;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-glow: rgba(59, 130, 246, 0.25);
+  --accent: #8b5cf6;
+  --accent-glow: rgba(139, 92, 246, 0.2);
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.2);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.2);
+  --text-main: #f1f5f9;
+  --text-sub: #64748b;
+  --text-dim: #475569;
+  --border-light: rgba(255, 255, 255, 0.06);
+  --border-focus: rgba(59, 130, 246, 0.4);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-hover: rgba(255, 255, 255, 0.06);
+  --glass-active: rgba(255, 255, 255, 0.1);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-md: 0 8px 30px rgba(0,0,0,0.5);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
+  --shadow-glow-blue: 0 0 40px rgba(59,130,246,0.15);
+  --shadow-glow-purple: 0 0 40px rgba(139,92,246,0.1);
+  --transition-fast: 0.15s ease;
+  --transition-med: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+::selection { background: var(--primary); color: #fff; }
+
+/* ── AMBIENT BACKGROUND ── */
+.bg-canvas {
+  position: fixed; inset: 0; z-index: -2; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(10,15,30,1) 0%, var(--bg-dark) 100%);
+}
+.bg-orb {
+  position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5;
+  animation: orbDrift 25s ease-in-out infinite alternate;
+}
+.bg-orb-1 { width: 50vw; height: 50vw; top: -15%; left: -10%; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); }
+.bg-orb-2 { width: 40vw; height: 40vw; bottom: -10%; right: -10%; background: radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%); animation-delay: -8s; }
+.bg-orb-3 { width: 30vw; height: 30vw; top: 40%; left: 50%; background: radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%); animation-delay: -15s; }
+@keyframes orbDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(3%, -2%) scale(1.05); }
+  66% { transform: translate(-2%, 3%) scale(0.95); }
+  100% { transform: translate(1%, -1%) scale(1.02); }
+}
+/* Noise texture overlay */
+.bg-noise {
+  position: fixed; inset: 0; z-index: -1; opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px; pointer-events: none;
+}
+
+/* ═══════════ HEADER ═══════════ */
+#hdr {
+  position: fixed; top: 0; left: 0; right: 0; height: 72px;
+  background: linear-gradient(180deg, rgba(3,3,5,0.95) 0%, rgba(3,3,5,0.6) 60%, transparent 100%);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; z-index: 40; pointer-events: none;
+}
+#hdr > * { pointer-events: auto; }
+
+/* Logo */
+.logo { display: flex; align-items: center; gap: 14px; text-decoration: none; user-select: none; }
+.logo-mark {
+  width: 40px; height: 40px; border-radius: 14px; position: relative;
+  background: linear-gradient(135deg, #60a5fa 0%, var(--primary) 50%, var(--accent) 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(59,130,246,0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.logo-mark::after {
+  content: ''; position: absolute; inset: -2px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.3), transparent, rgba(139,92,246,0.3));
+  z-index: -1; filter: blur(8px);
+}
+.logo-mark svg { width: 20px; height: 20px; fill: #fff; }
+.logo-name { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; display: flex; gap: 5px; }
+.logo-name span { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* Center Controls */
+.hdr-c {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--glass); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border-light); padding: 5px 6px; border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md), inset 0 1px 1px rgba(255,255,255,0.05);
+}
+.timer-badge {
+  display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600;
+  color: var(--text-main); font-variant-numeric: tabular-nums; padding: 0 14px;
+  letter-spacing: 0.8px;
+}
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); animation: recPulse 1.5s ease-in-out infinite; flex-shrink: 0; box-shadow: 0 0 8px var(--danger); }
+@keyframes recPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } }
+
+.vtog { display: flex; gap: 3px; }
+.vb {
+  background: transparent; border: none; color: var(--text-sub); padding: 8px 16px;
+  border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: var(--transition-med); display: flex; align-items: center; gap: 8px;
+}
+.vb.on { background: rgba(255,255,255,0.1); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
+.vb:hover:not(.on) { color: #fff; background: rgba(255,255,255,0.04); }
+
+/* Network Quality Badge */
+.net-badge {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: 20px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; cursor: default; transition: var(--transition-fast);
+}
+.net-badge.good { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+.net-badge.fair { background: rgba(245,158,11,0.1); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+.net-badge.poor { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+.net-badge i { font-size: 0.65rem; }
+
+/* Header Right */
+.hdr-r { display: flex; align-items: center; gap: 8px; }
+.hbadge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border-light);
+  padding: 9px 16px; border-radius: var(--radius-xl); font-size: 0.82rem; font-weight: 600;
+  color: var(--text-sub); cursor: pointer; transition: var(--transition-med); position: relative;
+}
+.hbadge:hover { background: var(--glass-hover); color: #fff; transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.hbadge .badge-count {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
+  background: var(--danger); border-radius: 50%; font-size: 0.65rem; font-weight: 700;
+  display: none; align-items: center; justify-content: center; padding: 0 4px;
+  border: 2px solid var(--bg-dark); color: #fff;
+}
+.hbadge .badge-count.show { display: flex; }
+#hostBadge { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); cursor: default; }
+#hostBadge:hover { transform: none; }
+
+/* E2EE Lock */
+.e2ee-badge {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15);
+  color: var(--success); cursor: default;
+}
+.e2ee-badge i { font-size: 0.7rem; }
+
+/* ═══════════ VIDEO STAGE (50+ USER GRID) ═══════════ */
+#stage {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
+  padding: 80px 20px 130px 20px; gap: 10px;
+  overflow-y: auto; overflow-x: hidden;
+  scroll-behavior: smooth;
+  transition: padding var(--transition-med);
+}
+#stage.panel-open { padding-right: 420px; }
+
+/* ── TILE ── */
+.tile {
+  position: relative; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--bg-tile); border: 1px solid rgba(255,255,255,0.04);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4); aspect-ratio: 16/9;
+  flex: 0 0 auto; cursor: default;
+}
+.tile::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+.tile:hover::before { opacity: 1; }
+.tile video { width: 100%; height: 100%; object-fit: cover; display: block; z-index: 0; }
+#lv { transform: scaleX(-1); }
+
+/* Active Speaker Glow */
+.tile.speaking {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.5), 0 0 30px rgba(59,130,246,0.15), 0 8px 30px rgba(0,0,0,0.4);
+  z-index: 5;
+}
+.tile.pinned {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 2px rgba(245,158,11,0.4), 0 0 30px rgba(245,158,11,0.1);
+  max-width: 100%; width: 100% !important; max-height: 65vh; flex-basis: 100% !important; order: -1;
+}
+
+/* ── DYNAMIC GRID SCALING: 1 → 50+ users ── */
+#stage.n1 .tile { width: 100%; max-width: 1100px; max-height: 72vh; }
+#stage.n2 .tile { width: calc(50% - 10px); max-width: 800px; }
+#stage.n3 .tile { width: calc(50% - 10px); max-width: 700px; }
+#stage.n4 .tile { width: calc(50% - 10px); max-width: 600px; }
+#stage.n5 .tile,
+#stage.n6 .tile { width: calc(33.333% - 10px); max-height: 36vh; }
+#stage.n7 .tile,
+#stage.n8 .tile,
+#stage.n9 .tile { width: calc(33.333% - 10px); max-height: 28vh; }
+#stage.n12 .tile { width: calc(25% - 10px); max-height: 25vh; }
+#stage.n16 .tile { width: calc(25% - 10px); max-height: 22vh; min-width: 200px; }
+#stage.n25 .tile { width: calc(20% - 10px); max-height: 18vh; min-width: 180px; }
+#stage.many .tile { width: calc(16.666% - 10px); max-height: 16vh; min-width: 160px; }
+#stage.massive .tile { width: calc(12.5% - 8px); max-height: 14vh; min-width: 140px; }
+
+/* Speaker View */
+#stage.spk .tile { width: 100%; max-height: 100vh; }
+#stage.spk .tile.pip-tile {
+  position: fixed; bottom: 140px; right: 30px; width: 280px; z-index: 35;
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255,255,255,0.15); aspect-ratio: 16/9; max-height: none; flex: none;
+}
+
+/* ── TILE UI OVERLAYS ── */
+.pres-ov {
+  position: absolute; inset: 0; background: rgba(5,5,8,0.96); backdrop-filter: blur(12px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.1rem; font-weight: 600; gap: 14px; z-index: 2;
+}
+.pres-ov.show { display: flex; }
+.pres-ov i { font-size: 3rem; color: var(--primary); animation: gentleFloat 3s ease-in-out infinite; }
+
+.no-cam {
+  position: absolute; inset: 0; display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: var(--bg-tile); z-index: 1;
+}
+.no-cam.show { display: flex; }
+.av-ring {
+  width: 72px; height: 72px; border-radius: 50%; position: relative;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 700; color: #fff;
+  box-shadow: 0 8px 30px rgba(59,130,246,0.35);
+}
+.av-ring::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59,130,246,0.4), transparent, rgba(139,92,246,0.4));
+  z-index: -1; filter: blur(6px);
+}
+.av-sub { font-size: 0.85rem; color: var(--text-sub); font-weight: 500; }
+
+/* Bottom label */
+.tlbl {
+  position: absolute; bottom: 10px; left: 10px;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(16px);
+  padding: 6px 14px; border-radius: var(--radius-sm); font-size: 0.8rem;
+  font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;
+  z-index: 4; border: 1px solid rgba(255,255,255,0.06);
+}
+.mic-dot {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; font-size: 0.65rem;
+}
+.mic-dot.on { color: var(--success); background: rgba(16,185,129,0.15); }
+.mic-dot.off { color: var(--danger); background: rgba(239,68,68,0.15); }
+
+/* Hand badge */
+.hbdg {
+  position: absolute; top: 10px; right: 10px; font-size: 1.3rem;
+  color: var(--warning); z-index: 4; display: none;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+  animation: gentleFloat 2s infinite ease-in-out;
+}
+.hbdg.show { display: block; }
+@keyframes gentleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* Pin button */
+.pin-b {
+  position: absolute; top: 10px; left: 10px; width: 34px; height: 34px;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-sm);
+  color: var(--text-sub); font-size: 0.85rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: var(--transition-med); z-index: 4;
+}
+.tile:hover .pin-b { opacity: 1; }
+.pin-b:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: scale(1.1); }
+
+/* Signal indicator */
+.sig-bars {
+  position: absolute; bottom: 10px; right: 10px; display: flex; gap: 3px;
+  align-items: flex-end; z-index: 4; background: rgba(0,0,0,0.55);
+  padding: 6px 8px; border-radius: 8px; backdrop-filter: blur(8px);
+}
+.sig-bars .b { width: 3px; border-radius: 2px; }
+.sig-bars .b:nth-child(1) { height: 5px; } .sig-bars .b:nth-child(2) { height: 9px; } .sig-bars .b:nth-child(3) { height: 13px; }
+.sig-good .b { background: var(--success); }
+.sig-fair .b:nth-child(1), .sig-fair .b:nth-child(2) { background: var(--warning); } .sig-fair .b:nth-child(3) { background: rgba(255,255,255,0.15); }
+.sig-poor .b:nth-child(1) { background: var(--danger); } .sig-poor .b:nth-child(2), .sig-poor .b:nth-child(3) { background: rgba(255,255,255,0.1); }
+
+/* Tile volume meter */
+.vol-meter {
+  position: absolute; left: 0; bottom: 0; height: 3px; z-index: 3;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 0 0 0 var(--radius-md);
+  width: 0%; transition: width 0.1s linear;
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* ═══════════ PANELS ═══════════ */
+.panel {
+  position: fixed; top: 0; right: -440px; bottom: 0; width: min(420px, 100vw);
+  background: var(--bg-panel); backdrop-filter: blur(40px) saturate(180%);
+  border-left: 1px solid var(--border-light);
+  display: flex; flex-direction: column;
+  transition: right var(--transition-slow); z-index: 50;
+  box-shadow: -15px 0 50px rgba(0,0,0,0.6);
+}
+.panel.open { right: 0; }
+
+.pnl-hdr {
+  padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+.pnl-hdr h3 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.pnl-hdr h3 i { color: var(--primary); font-size: 0.95rem; }
+.pnl-x {
+  background: var(--glass); border: 1px solid var(--border-light); color: var(--text-sub);
+  cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; transition: var(--transition-med);
+}
+.pnl-x:hover { background: var(--glass-active); color: #fff; transform: rotate(90deg); }
+
+/* Chat Advanced Update */
+.chat-list { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.cmsg {
+  background: var(--glass); border: 1px solid rgba(255,255,255,0.04);
+  padding: 10px 14px; border-radius: 14px; font-size: 0.88rem;
+  max-width: 85%; align-self: flex-start;
+  animation: msgIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Smart Grouping styles */
+.cmsg.me { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.15); align-self: flex-end; }
+.cmsg.grouped-top { border-bottom-left-radius: 4px; margin-bottom: 2px; }
+.cmsg.grouped-mid { border-radius: 4px 14px 14px 4px; margin-bottom: 2px; }
+.cmsg.grouped-btm { border-top-left-radius: 4px; }
+.cmsg.me.grouped-top { border-radius: 14px 14px 4px 14px; border-bottom-right-radius: 4px; margin-bottom: 2px;}
+.cmsg.me.grouped-mid { border-radius: 14px 4px 4px 14px; margin-bottom: 2px;}
+.cmsg.me.grouped-btm { border-radius: 14px 4px 14px 14px; border-top-right-radius: 4px; }
+
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+.cm-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 12px; }
+.cm-who { font-weight: 600; color: var(--primary); font-size: 0.75rem; }
+.cmsg.me .cm-who { color: #93c5fd; }
+.cm-t { font-size: 0.65rem; color: var(--text-dim); white-space: nowrap; display: inline-block; float: right; margin-left: 8px;}
+.cm-body { color: var(--text-main); line-height: 1.55; word-break: break-word; }
+.cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
+.cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
+
+.chat-foot {
+  padding: 20px; border-top: 1px solid rgba(255,255,255,0.04);
+  display: flex; gap: 10px; flex-shrink: 0; background: rgba(0,0,0,0.2); align-items: center;
+}
+.chat-attach-label {
+  background: transparent; border: none; color: var(--text-sub); 
+  font-size: 1.2rem; cursor: pointer; transition: 0.2s; 
+  padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.chat-attach-label:hover { color: #fff; background: var(--glass); }
+
+.chat-inp {
+  flex: 1; background: var(--glass); border: 1px solid rgba(255,255,255,0.08);
+  padding: 14px 18px; border-radius: 14px; color: #fff; font-size: 0.92rem;
+  font-family: inherit; outline: none; transition: var(--transition-med);
+}
+.chat-inp::placeholder { color: var(--text-dim); }
+.chat-inp:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+.chat-go {
+  background: var(--primary); color: #fff; border: none; width: 50px;
+  border-radius: 14px; cursor: pointer; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition-med); flex-shrink: 0; height: 48px;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+}
+.chat-go:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59,130,246,0.4); }
+
+/* Participants */
+.plist { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.p-search {
+  margin: 0 0 12px; padding: 12px 16px; background: var(--glass); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; color: #fff; font-size: 0.88rem; font-family: inherit; outline: none;
+  width: 100%; transition: var(--transition-med);
+}
+.p-search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+.p-search::placeholder { color: var(--text-dim); }
+
+.pitem {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+  border-radius: 14px; transition: var(--transition-fast);
+  background: transparent; border: 1px solid transparent;
+}
+.pitem:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.04); }
+.pav {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 600; color: #fff; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+}
+.pinfo { flex: 1; min-width: 0; }
+.pname { font-size: 0.92rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prole { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.prole .role-tag {
+  background: rgba(245,158,11,0.1); color: var(--warning); padding: 1px 8px;
+  border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.pst { display: flex; gap: 10px; font-size: 0.85rem; }
+.pst i { transition: var(--transition-fast); }
+
+/* ═══════════ SETTINGS PANEL ═══════════ */
+.settings-section { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.settings-group { display: flex; flex-direction: column; gap: 4px; }
+.settings-group-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+  border-radius: 14px; background: var(--glass); border: 1px solid rgba(255,255,255,0.04);
+  transition: var(--transition-fast);
+}
+.setting-row:hover { background: var(--glass-hover); }
+.setting-info { display: flex; align-items: center; gap: 14px; }
+.setting-info i { font-size: 1rem; color: var(--primary); width: 20px; text-align: center; }
+.setting-info span { font-size: 0.9rem; font-weight: 500; }
+.toggle-sw {
+  width: 44px; height: 24px; border-radius: 12px; background: rgba(255,255,255,0.1);
+  border: none; cursor: pointer; position: relative; transition: var(--transition-med);
+}
+.toggle-sw::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; transition: var(--transition-med);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.toggle-sw.on { background: var(--primary); }
+.toggle-sw.on::after { transform: translateX(20px); }
+
+/* ═══════════ CONTROL BAR (DOCK) ═══════════ */
+#cbar {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: rgba(12, 12, 18, 0.88); backdrop-filter: blur(50px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 100px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; z-index: 45;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 80px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1);
+  width: max-content; max-width: 96vw;
+  transition: var(--transition-med);
+}
+.cg { display: flex; align-items: center; gap: 6px; }
+.cg-sep { width: 1px; height: 32px; background: rgba(255,255,255,0.08); margin: 0 6px; }
+
+/* Dock Buttons */
+.cb {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--glass); color: var(--text-main);
+  border: 1px solid transparent; cursor: pointer; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.cb .ic { font-size: 1.15rem; transition: 0.2s; }
+.cb .lb { display: none; }
+.cb:hover {
+  background: var(--glass-active); transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1); z-index: 10;
+}
+.cb:active .ic { transform: scale(0.88); }
+
+/* Off state (Red glow) */
+.cb.off { background: rgba(239,68,68,0.12); color: var(--danger); border-color: rgba(239,68,68,0.25); }
+.cb.off:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); box-shadow: 0 12px 24px var(--danger-glow); }
+
+/* On state (Blue glow) */
+.cb.on { background: rgba(59,130,246,0.12); color: var(--primary); border-color: rgba(59,130,246,0.25); }
+.cb.on:hover { background: rgba(59,130,246,0.2); box-shadow: 0 12px 24px var(--primary-glow); }
+
+/* End call */
+.cb.end {
+  width: auto; padding: 0 24px; border-radius: 100px;
+  background: var(--danger); border-color: var(--danger); color: #fff; gap: 8px;
+  box-shadow: 0 6px 18px var(--danger-glow);
+}
+.cb.end .lb { display: block; font-size: 0.92rem; font-weight: 700; }
+.cb.end:hover { background: #dc2626; transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 30px rgba(239,68,68,0.5); }
+
+/* Host controls */
+.cb.hst {
+  width: auto; padding: 0 18px; border-radius: 100px;
+  background: rgba(245,158,11,0.1); color: var(--warning);
+  border-color: rgba(245,158,11,0.25); gap: 8px;
+}
+.cb.hst .lb { display: block; font-size: 0.82rem; font-weight: 600; color: var(--warning); }
+.cb.hst:hover { background: rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.4); }
+
+/* Notification dot */
+.ndot {
+  position: absolute; top: 8px; right: 8px; width: 10px; height: 10px;
+  background: var(--danger); border-radius: 50%; display: none;
+  border: 2px solid rgba(12,12,18,1); box-shadow: 0 0 6px var(--danger);
+}
+.ndot.show { display: block; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+/* Tooltips */
+.tip {
+  position: absolute; bottom: calc(100% + 16px); left: 50%; transform: translateX(-50%) translateY(8px);
+  background: rgba(8,8,14,0.97); color: #fff; padding: 7px 14px; border-radius: var(--radius-sm);
+  font-size: 0.76rem; font-weight: 600; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: var(--transition-med); border: 1px solid rgba(255,255,255,0.08); z-index: 60;
+  box-shadow: var(--shadow-md);
+}
+.tip kbd {
+  background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 5px;
+  font-size: 0.65rem; margin-left: 6px; font-family: 'SF Mono', monospace; color: var(--text-sub);
+}
+.cb:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── REACTIONS ── */
+.rw { position: relative; }
+.rpop {
+  position: absolute; bottom: calc(100% + 20px); left: 50%; transform: translateX(-50%) scale(0.9);
+  background: var(--bg-panel); backdrop-filter: blur(30px);
+  border: 1px solid var(--border-light); border-radius: 100px;
+  padding: 8px 12px; display: none; flex-direction: row; gap: 4px;
+  box-shadow: var(--shadow-lg); z-index: 70; opacity: 0;
+  transition: var(--transition-med);
+}
+.rpop.show { display: flex; opacity: 1; transform: translateX(-50%) scale(1); }
+.re {
+  font-size: 1.6rem; cursor: pointer; padding: 8px; border-radius: 50%;
+  transition: var(--transition-med); border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.re:hover { background: var(--glass-active); transform: scale(1.3) translateY(-4px); }
+.fem {
+  position: fixed; font-size: 3rem; pointer-events: none; z-index: 100;
+  animation: emojiUp 3s ease-out forwards;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4));
+}
+@keyframes emojiUp {
+  0% { opacity: 1; transform: translateY(0) scale(0.5) rotate(-10deg); }
+  20% { transform: translateY(-80px) scale(1.1) rotate(5deg); }
+  100% { opacity: 0; transform: translateY(-450px) scale(0.8) rotate(-5deg); }
+}
+
+/* ── TOASTS ── */
+#toasts {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%);
+  z-index: 90; display: flex; flex-direction: column; gap: 8px;
+  align-items: center; pointer-events: none;
+}
+.tst {
+  background: rgba(12,12,18,0.95); backdrop-filter: blur(24px); color: #fff;
+  padding: 14px 24px; border-radius: 100px; font-size: 0.88rem; font-weight: 600;
+  border: 1px solid var(--border-light); box-shadow: var(--shadow-md);
+  display: flex; align-items: center; gap: 12px;
+  opacity: 0; transform: translateY(-16px) scale(0.95); transition: var(--transition-med);
+}
+.tst.show { opacity: 1; transform: translateY(0) scale(1); }
+.tst i { font-size: 1.1rem; }
+
+/* ── KEYBOARD SHORTCUTS MODAL ── */
+.sco {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
+  z-index: 200; display: none; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.sco.show { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.scb {
+  background: var(--bg-panel); backdrop-filter: blur(40px);
+  border: 1px solid var(--border-light); border-radius: var(--radius-xl);
+  padding: 36px; max-width: 440px; width: 92%;
+  box-shadow: var(--shadow-lg), var(--shadow-glow-blue);
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.scb h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+.scb h2 i { color: var(--primary); }
+.scr { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.scr:last-child { border-bottom: none; }
+.scd { font-size: 0.92rem; color: var(--text-sub); }
+.kbg {
+  background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+  padding: 5px 12px; border-radius: 8px; font-size: 0.8rem;
+  font-family: 'SF Mono', monospace; font-weight: 600; color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* ── MEETING INFO OVERLAY ── */
+.info-ov {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
+  z-index: 200; display: none; align-items: center; justify-content: center;
+}
+.info-ov.show { display: flex; }
+.info-box {
+  background: var(--bg-panel); backdrop-filter: blur(40px);
+  border: 1px solid var(--border-light); border-radius: var(--radius-xl);
+  padding: 36px; max-width: 440px; width: 92%;
+  box-shadow: var(--shadow-lg); animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.info-box h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.info-box h2 i { color: var(--primary); }
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.info-row:last-child { border-bottom: none; }
+.info-key { font-size: 0.85rem; color: var(--text-sub); }
+.info-val { font-size: 0.85rem; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+.info-val .copy-btn {
+  background: var(--glass); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-sub); width: 28px; height: 28px; border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; transition: var(--transition-fast);
+}
+.info-val .copy-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── RECORDING INDICATOR ── */
+.rec-bar {
+  position: fixed; top: 74px; left: 50%; transform: translateX(-50%);
+  background: rgba(239,68,68,0.12); backdrop-filter: blur(20px);
+  border: 1px solid rgba(239,68,68,0.25); border-radius: 100px;
+  padding: 6px 18px; display: none; align-items: center; gap: 10px;
+  z-index: 39; font-size: 0.8rem; font-weight: 600; color: var(--danger);
+  box-shadow: 0 4px 20px rgba(239,68,68,0.15);
+  animation: fadeIn 0.3s ease;
+}
+.rec-bar.show { display: flex; }
+.rec-bar .rec-dot { width: 8px; height: 8px; }
+.rec-bar button {
+  background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3);
+  color: var(--danger); padding: 4px 12px; border-radius: 8px;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: var(--transition-fast);
+  font-family: inherit;
+}
+.rec-bar button:hover { background: var(--danger); color: #fff; }
+
+/* ── STATS OVERLAY ── */
+.stats-float {
+  position: fixed; top: 84px; left: 20px; z-index: 38;
+  background: var(--bg-panel); backdrop-filter: blur(30px);
+  border: 1px solid var(--border-light); border-radius: var(--radius-md);
+  padding: 16px 20px; display: none; flex-direction: column; gap: 8px;
+  font-size: 0.78rem; min-width: 200px; box-shadow: var(--shadow-md);
+}
+.stats-float.show { display: flex; }
+.stats-float h4 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 4px; }
+.stat-row { display: flex; justify-content: space-between; color: var(--text-sub); }
+.stat-row .stat-val { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media(max-width: 768px) {
+  #hdr { padding: 0 14px; height: 64px; }
+  .logo-name { display: none; }
+  .vtog { display: none; }
+  .net-badge span { display: none; }
+  .e2ee-badge span { display: none; }
+  #stage { padding: 64px 8px 110px 8px; gap: 6px; }
+  #stage.panel-open { padding-right: 8px; }
+  #stage.n2 .tile, #stage.n3 .tile, #stage.n4 .tile { width: calc(50% - 6px); }
+  #stage.n6 .tile, #stage.n9 .tile { width: calc(50% - 6px); max-height: 30vh; }
+  #stage.many .tile, #stage.n12 .tile, #stage.n16 .tile, #stage.n25 .tile { width: calc(33.333% - 6px); min-width: 120px; }
+  #stage.massive .tile { width: calc(25% - 6px); min-width: 100px; }
+  #cbar { bottom: 12px; padding: 8px 12px; gap: 4px; border-radius: 30px; }
+  .cb { width: 44px; height: 44px; }
+  .cb .ic { font-size: 1rem; }
+  .cb.end { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+  .cb.end .lb, .cb.end .tip { display: none; }
+  .cb.hst { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+  .cb.hst .lb, .cb.hst .tip { display: none; }
+  .cg-sep { margin: 0 2px; height: 24px; }
+  .panel { width: 100%; border-left: none; }
+  .hdr-r .hbadge span { display: none; }
+  .hdr-r .hbadge { padding: 9px 12px; }
+  .av-ring { width: 56px; height: 56px; font-size: 1.4rem; }
+  .tlbl { font-size: 0.7rem; padding: 4px 10px; }
+}
+@media(max-width: 480px) {
+  .cg-sep:nth-child(4) { display: none; }
+  .cb.hst, .cb#shareBtn { display: none; }
+  #stage.n4 .tile { width: 100%; }
+}
+
+/* ── TYPING INDICATOR ── */
+.typing-indicator {
+    font-size: 0.75rem; color: var(--primary); font-weight: 500;
+    padding: 6px 12px; align-items: center; gap: 8px; animation: fadeIn 0.3s ease;
+    display: none; /* Controlled by JS */
+}
+.typing-indicator.show { display: flex; }
+.typing-dots { display: flex; gap: 3px; align-items: center; }
+.typing-dots span { width: 4px; height: 4px; background: var(--primary); border-radius: 50%; animation: blink 1.4s infinite both; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
+</style>
+</head>
+<body>
+<div class="bg-canvas">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+<div class="bg-noise"></div>
+
+<!-- ── HEADER ── -->
+<header id="hdr">
+  <a class="logo" href="#">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><rect x="1" y="6" width="14" height="12" rx="3"/><path d="M16 9.5l6-3.5v12l-6-3.5V9.5z"/></svg>
+    </div>
+    <span class="logo-name">Omniverse <span>Meet</span></span>
+  </a>
+
+  <div class="hdr-c">
+    <div class="timer-badge">
+      <div class="rec-dot"></div>
+      <span id="timerEl">00:00:00</span>
+    </div>
+    <div class="vtog">
+      <button class="vb on" id="gallBtn" onclick="setView('g')"><i class="fa-solid fa-grid-2"></i> Gallery</button>
+      <button class="vb" id="spkBtn" onclick="setView('s')"><i class="fa-solid fa-user-large"></i> Speaker</button>
+    </div>
+    <div class="net-badge good" id="netBadge" title="Connection quality">
+      <i class="fa-solid fa-signal"></i> <span>Excellent</span>
+    </div>
+  </div>
+
+  <div class="hdr-r">
+    <div class="e2ee-badge" title="End-to-end encrypted"><i class="fa-solid fa-lock"></i> <span>E2EE</span></div>
+    <div class="hbadge" id="hostBadge" style="display:none;" title="You are the host"><i class="fa-solid fa-shield-halved"></i> <span>Host</span></div>
+    <div class="hbadge" onclick="togglePanel('p')" title="Participants">
+      <i class="fa-solid fa-users"></i> <span id="pCount">1</span>
+      <div class="badge-count" id="handCount">0</div>
+    </div>
+    <div class="hbadge" onclick="toggleInfo()" title="Meeting info"><i class="fa-solid fa-circle-info"></i></div>
+    <div class="hbadge" onclick="togglePanel('s')" title="Settings"><i class="fa-solid fa-gear"></i></div>
+    <div class="hbadge" onclick="toggleSC()" title="Shortcuts"><i class="fa-solid fa-keyboard"></i></div>
+  </div>
+</header>
+
+<!-- ── RECORDING BAR ── -->
+<div class="rec-bar" id="recBar">
+  <div class="rec-dot"></div> Recording
+  <button onclick="toggleRec()">Stop</button>
+</div>
+
+<!-- ── STATS OVERLAY ── -->
+<div class="stats-float" id="statsFloat">
+  <h4>Connection Stats</h4>
+  <div class="stat-row"><span>Participants</span><span class="stat-val" id="statPeers">1</span></div>
+  <div class="stat-row"><span>Bitrate (out)</span><span class="stat-val" id="statBitrate">0 kbps</span></div>
+  <div class="stat-row"><span>Resolution</span><span class="stat-val" id="statRes">640×360</span></div>
+  <div class="stat-row"><span>Frame Rate</span><span class="stat-val" id="statFps">20 fps</span></div>
+  <div class="stat-row"><span>Packet Loss</span><span class="stat-val" id="statLoss">0%</span></div>
+  <div class="stat-row"><span>Latency</span><span class="stat-val" id="statLatency">—</span></div>
+</div>
+
+<!-- ── VIDEO STAGE ── -->
+<div id="stage" class="n1">
+  <div class="tile" id="localTile">
+    <video id="lv" autoplay muted playsinline></video>
+    <div class="pres-ov" id="localPres">
+      <i class="fa-solid fa-display"></i>
+      <span>You are presenting to everyone</span>
+    </div>
+    <div class="no-cam" id="localNoCam">
+      <div class="av-ring" id="localInit">?</div>
+      <div class="av-sub" id="localSub">You</div>
+    </div>
+    <div class="tlbl">
+      <span id="localTlblName">You</span>
+      <div id="localMicInd" class="mic-dot on"><i class="fa-solid fa-microphone"></i></div>
+    </div>
+    <div class="hbdg" id="localHand"><i class="fa-solid fa-hand"></i></div>
+    <div class="vol-meter" id="localVol"></div>
+  </div>
+</div>
+
+<!-- ── CHAT PANEL ── -->
+<div class="panel" id="chatPanel">
+  <div class="pnl-hdr">
+    <h3><i class="fa-solid fa-message"></i> Messages</h3>
+    <button class="pnl-x" onclick="togglePanel('c')"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="chat-list" id="chatList">
+    <div class="cmsg sys">
+      <div class="cm-who"><i class="fa-solid fa-lock"></i> End-to-End Encrypted</div>
+      <div class="cm-body" style="color: var(--text-dim);">Messages are secure and visible only to participants.</div>
+    </div>
+  </div>
+  <div class="chat-foot">
+    <label class="chat-attach-label" for="chatFileInp" title="Attach file"><i class="fa-solid fa-paperclip"></i></label>
+    <input type="file" id="chatFileInp" style="display:none" onchange="handleFileSelect(this)">
+    <input class="chat-inp" id="chatIn" type="text" placeholder="Type a message…" onkeypress="onCK(event)" maxlength="500" autocomplete="off">
+    <button class="chat-go" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<!-- ── PARTICIPANTS PANEL ── -->
+<div class="panel" id="partsPanel">
+  <div class="pnl-hdr">
+    <h3><i class="fa-solid fa-users"></i> Participants</h3>
+    <button class="pnl-x" onclick="togglePanel('p')"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="plist" id="partsList">
+    <input class="p-search" id="pSearch" type="text" placeholder="Search participants…" oninput="filterParts()" autocomplete="off">
+  </div>
+</div>
+
+<!-- ── SETTINGS PANEL ── -->
+<div class="panel" id="settingsPanel">
+  <div class="pnl-hdr">
+    <h3><i class="fa-solid fa-gear"></i> Settings</h3>
+    <button class="pnl-x" onclick="togglePanel('s')"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="settings-section">
+    <div class="settings-group">
+      <div class="settings-group-title">Audio & Video</div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Noise Suppression</span></div>
+        <button class="toggle-sw on" id="noiseSw" onclick="toggleNoise()"></button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-image"></i><span>Virtual Background</span></div>
+        <button class="toggle-sw" id="vbgSw" onclick="toggleVBG()"></button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-face-smile"></i><span>Mirror Self View</span></div>
+        <button class="toggle-sw on" id="mirrorSw" onclick="toggleMirror()"></button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-gauge-high"></i><span>HD Video (Higher bandwidth)</span></div>
+        <button class="toggle-sw" id="hdSw" onclick="toggleHD()"></button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Meeting</div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-chart-simple"></i><span>Show Stats Overlay</span></div>
+        <button class="toggle-sw" id="statsSw" onclick="toggleStats()"></button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-circle-dot"></i><span>Record Meeting</span></div>
+        <button class="toggle-sw" id="recSw" onclick="toggleRec()"></button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-bell"></i><span>Join/Leave Sounds</span></div>
+        <button class="toggle-sw on" id="soundSw" onclick="toggleSounds()"></button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Layout</div>
+      <div class="setting-row">
+        <div class="setting-info"><i class="fa-solid fa-expand"></i><span>Auto-hide Controls</span></div>
+        <button class="toggle-sw" id="autoHideSw" onclick="toggleAutoHide()"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MEETING INFO MODAL ── -->
+<div class="info-ov" id="infoOv" onclick="toggleInfo()">
+  <div class="info-box" onclick="event.stopPropagation()">
+    <h2><i class="fa-solid fa-circle-info"></i> Meeting Details</h2>
+    <div class="info-row">
+      <span class="info-key">Room ID</span>
+      <span class="info-val" id="infoRoom">—
+        <button class="copy-btn" onclick="copyField('infoRoom')"><i class="fa-solid fa-copy"></i></button>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Link</span>
+      <span class="info-val" id="infoLink" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">—
+        <button class="copy-btn" onclick="copyLink()"><i class="fa-solid fa-copy"></i></button>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Encryption</span>
+      <span class="info-val"><i class="fa-solid fa-lock" style="color:var(--success);font-size:0.75rem;"></i> End-to-End</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Participants</span>
+      <span class="info-val" id="infoParts">1</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Duration</span>
+      <span class="info-val" id="infoDuration">00:00:00</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">Your Name</span>
+      <span class="info-val" id="infoName">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTROL BAR (DOCK) ── -->
+<div id="cbar">
+  <div class="cg">
+    <button class="cb" id="micBtn" onclick="toggleMic()">
+      <span class="ic"><i id="micIco" class="fa-solid fa-microphone"></i></span>
+      <div class="tip">Mute / Unmute <kbd>M</kbd></div>
+    </button>
+    <button class="cb" id="camBtn" onclick="toggleCam()">
+      <span class="ic"><i id="camIco" class="fa-solid fa-video"></i></span>
+      <div class="tip">Camera <kbd>V</kbd></div>
+    </button>
+  </div>
+
+  <div class="cg-sep"></div>
+
+  <div class="cg">
+    <button class="cb" id="shareBtn" onclick="toggleScreen()">
+      <span class="ic"><i class="fa-solid fa-display"></i></span>
+      <div class="tip">Present <kbd>S</kbd></div>
+    </button>
+    <button class="cb" id="recBtn" onclick="toggleRec()">
+      <span class="ic"><i class="fa-solid fa-circle-dot"></i></span>
+      <div class="tip">Record <kbd>R</kbd></div>
+    </button>
+    <button class="cb" id="chatBtn" onclick="togglePanel('c')">
+      <span class="ic"><i class="fa-solid fa-message"></i></span>
+      <div class="ndot" id="chatDot"></div>
+      <div class="tip">Chat <kbd>C</kbd></div>
+    </button>
+    <button class="cb" id="handBtn" onclick="toggleHand()">
+      <span class="ic"><i class="fa-solid fa-hand"></i></span>
+      <div class="tip">Raise Hand <kbd>H</kbd></div>
+    </button>
+    <div class="rw">
+      <button class="cb" id="reactBtn" onclick="toggleReact(event)">
+        <span class="ic"><i class="fa-solid fa-face-smile"></i></span>
+        <div class="tip">React <kbd>E</kbd></div>
+      </button>
+      <div class="rpop" id="rpop">
+        <button class="re" onclick="doReact('👍')">👍</button>
+        <button class="re" onclick="doReact('❤️')">❤️</button>
+        <button class="re" onclick="doReact('😂')">😂</button>
+        <button class="re" onclick="doReact('🎉')">🎉</button>
+        <button class="re" onclick="doReact('🔥')">🔥</button>
+        <button class="re" onclick="doReact('👏')">👏</button>
+        <button class="re" onclick="doReact('💯')">💯</button>
+        <button class="re" onclick="doReact('🤔')">🤔</button>
+      </div>
+    </div>
+    <button class="cb" id="pipBtn" onclick="togglePiP()">
+      <span class="ic"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></span>
+      <div class="tip">Picture-in-Picture <kbd>P</kbd></div>
+    </button>
+  </div>
+
+  <div class="cg-sep"></div>
+
+  <div class="cg">
+    <button class="cb hst" id="muteAllBtn" onclick="muteAll()" style="display:none">
+      <span class="ic"><i class="fa-solid fa-microphone-lines-slash"></i></span>
+      <span class="lb">Silence All</span>
+    </button>
+    <button class="cb end" onclick="endCall()">
+      <span class="ic"><i class="fa-solid fa-phone-slash"></i></span>
+      <span class="lb">Leave</span>
+    </button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<!-- ── SHORTCUTS MODAL ── -->
+<div class="sco" id="scOver" onclick="toggleSC()">
+  <div class="scb" onclick="event.stopPropagation()">
+    <h2><i class="fa-solid fa-keyboard"></i> Keyboard Shortcuts</h2>
+    <div class="scr"><span class="scd">Mute / Unmute</span><span class="kbg">M</span></div>
+    <div class="scr"><span class="scd">Camera on / off</span><span class="kbg">V</span></div>
+    <div class="scr"><span class="scd">Present screen</span><span class="kbg">S</span></div>
+    <div class="scr"><span class="scd">Record meeting</span><span class="kbg">R</span></div>
+    <div class="scr"><span class="scd">Chat panel</span><span class="kbg">C</span></div>
+    <div class="scr"><span class="scd">Raise hand</span><span class="kbg">H</span></div>
+    <div class="scr"><span class="scd">Reactions</span><span class="kbg">E</span></div>
+    <div class="scr"><span class="scd">Picture-in-Picture</span><span class="kbg">P</span></div>
+    <div class="scr"><span class="scd">Fullscreen</span><span class="kbg">F</span></div>
+    <div class="scr"><span class="scd">Stats overlay</span><span class="kbg">D</span></div>
+    <div class="scr"><span class="scd">Close modal / panel</span><span class="kbg">Esc</span></div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+
+/* ═══════════════════════════════════════════════════════
+   NEXUS MEET PRO — ULTRA CORE ENGINE
+   Handles: WebRTC Mesh, Adaptive Bitrate, 50+ Auto-scaling
+   ═══════════════════════════════════════════════════════ */
+
+// ── IDENTITY ──
+let ME = /*[[${username}]]*/ "Guest";
+if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || String(ME).includes("${")) {
+  ME = "Guest_" + Math.floor(Math.random() * 9000 + 1000);
+}
+
+const ROOM = new URLSearchParams(location.search).get('id') || 'nexus-default';
+
+// ── STATE ──
+let stream, screenStream, origVT;
+let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
+let wsOk = false, streamOk = false, joined = false;
+let micMuted = false, camOff = false, sharing = false, handUp = false, recording = false;
+let viewMode = 'g', pinnedId = null, activePanel = null;
+let meetStart = Date.now(), aCtx, localAn;
+let noiseSuppression = true, mirrorSelf = true, hdMode = false, showStats = false, joinSounds = true, autoHide = false;
+let autoHideTimer = null;
+let lastMsgSender = null; // Track sender for smart chat grouping
+let typingTimeoutSend = null;
+let optimizeTimeout = null;
+
+const ICE = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' }
+  ],
+  sdpSemantics: 'unified-plan',
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require'
+};
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('localTlblName').textContent = 'You';
+  document.getElementById('localInit').textContent = ME.charAt(0).toUpperCase();
+  document.getElementById('localSub').textContent = ME;
+  document.getElementById('infoRoom').childNodes[0].textContent = ROOM + ' ';
+  document.getElementById('infoLink').childNodes[0].textContent = location.href.substring(0, 40) + '… ';
+  document.getElementById('infoName').textContent = ME;
+
+  // Timer
+  setInterval(() => {
+    const e = Math.floor((Date.now() - meetStart) / 1000);
+    const pad = n => String(n).padStart(2, '0');
+    const t = `${pad(Math.floor(e / 3600))}:${pad(Math.floor((e % 3600) / 60))}:${pad(e % 60)}`;
+    document.getElementById('timerEl').textContent = t;
+    document.getElementById('infoDuration').textContent = t;
+  }, 1000);
+
+  // Stats collector
+  setInterval(collectStats, 3000);
+
+  refreshParts();
+  
+  // Real-time typing notification with debouncing (Fixing WS Spam)
+  document.getElementById('chatIn').addEventListener('input', () => {
+      if(wsOk && joined && !typingTimeoutSend) {
+          safeSend({ type: 'typing', roomId: ROOM, senderName: ME });
+          typingTimeoutSend = setTimeout(() => { typingTimeoutSend = null; }, 2000);
+      }
+  });
+
+  // Stay alive ping
+  setInterval(() => {
+     if (wsOk) safeSend({ type: 'ping' });
+  }, 15000);
+});
+
+// ── WEBSOCKET ──
+const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/signal';
+let ws;
+
+function safeSend(msgObj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msgObj));
+    }
+}
+
+function connectWebSocket() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => { wsOk = true; tryJoin(); };
+    ws.onerror = () => toast("Connection error — retrying…", "fa-solid fa-triangle-exclamation", "var(--danger)");
+    ws.onclose = () => {
+      wsOk = false; joined = false;
+      toast("Disconnected from server", "fa-solid fa-plug-circle-xmark", "var(--danger)");
+      
+      // Clean old peer states before reconnecting
+      for (let pid in peers) {
+         peers[pid].close();
+         delete peers[pid];
+         const t = document.getElementById(`t-${pid}`);
+         if(t) t.remove();
+      }
+      pNames = {};
+      updateCount(); refreshParts();
+
+      showReconnectOverlay();
+      setTimeout(() => {
+        toast("Reconnecting…", "fa-solid fa-rotate", "var(--warning)");
+        connectWebSocket(); 
+      }, 5000);
+    };
+
+    ws.onmessage = async (ev) => {
+      const d = JSON.parse(ev.data), sid = d.sender;
+      if (d.senderName && sid) pNames[sid] = d.senderName;
+
+      switch (d.type) {
+        case 'join_ack':
+          if (d.isHost) {
+            document.getElementById('muteAllBtn').style.display = 'flex';
+            document.getElementById('hostBadge').style.display = 'flex';
+          }
+          return;
+
+        case 'mute_force':
+          if (!micMuted) { toggleMic(); toast("Host muted your microphone", "fa-solid fa-microphone-slash", "var(--danger)"); }
+          return;
+
+        case 'reaction':
+          if (d.emoji) spawnEmoji(d.emoji);
+          return;
+
+        case 'hand_raise':
+          if (sid) {
+            const b = document.getElementById(`hand-${sid}`);
+            if (b) b.classList.toggle('show', d.raised);
+            if (d.raised) toast(`${d.senderName || 'Someone'} raised a hand ✋`, "fa-solid fa-hand", "var(--warning)");
+            updateHandCount();
+          }
+          return;
+          
+        case 'typing':
+            if(sid) showTypingIndicator(d.senderName);
+            return;
+
+        case 'join':
+          if (!sid) return;
+          // Staggered peer creation to avoid flooding
+          setTimeout(() => {
+            createPC(sid, true);
+            toast(`${d.senderName || 'Participant'} joined`, "fa-solid fa-user-plus", "var(--success)");
+            if (joinSounds) playTone(880, 0.08, 0.1);
+            updateCount(); refreshParts(); optimizeForScaleDebounced();
+          }, Math.random() * 600 + 100);
+          return;
+
+        case 'offer':
+          if (!sid) return;
+          createPC(sid, false);
+          await peers[sid].setRemoteDescription(new RTCSessionDescription(d.offer));
+          flushQ(sid);
+          const ans = await peers[sid].createAnswer();
+          await peers[sid].setLocalDescription(ans);
+          safeSend({ type: 'answer', answer: ans, roomId: ROOM, target: sid, senderName: ME });
+          return;
+
+        case 'answer':
+          if (sid && peers[sid]) { await peers[sid].setRemoteDescription(new RTCSessionDescription(d.answer)); flushQ(sid); }
+          return;
+
+        case 'candidate':
+          if (!sid || !d.candidate) return;
+          if (!peers[sid]?.remoteDescription?.type) { (queues[sid] = queues[sid] || []).push(d.candidate); }
+          else { try { await peers[sid].addIceCandidate(new RTCIceCandidate(d.candidate)); } catch(e) {} }
+          return;
+
+        case 'leave':
+          if (!sid) return;
+          const name = pNames[sid] || 'Participant';
+          removePeer(sid);
+          toast(`${name} left`, "fa-solid fa-user-minus", "var(--danger)");
+          if (joinSounds) playTone(440, 0.06, 0.15);
+          updateCount(); refreshParts(); optimizeForScaleDebounced();
+          return;
+
+        case 'chat':
+          if (sid) {
+            appendMsg(d.senderName || 'Participant', d.message, false);
+            if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
+          }
+          return;
+      }
+    };
+}
+
+// Initial connection
+connectWebSocket();
+
+function showReconnectOverlay() {
+    let overlay = document.getElementById('reconnectOverlay');
+    if(!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'reconnectOverlay';
+        overlay.style.cssText = 'position:fixed; inset:0; background:rgba(3,3,5,0.85); backdrop-filter:blur(20px); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff;';
+        overlay.innerHTML = '<i class="fa-solid fa-rotate fa-spin" style="font-size:3rem; color:var(--primary); margin-bottom:20px;"></i><h2>Reconnecting...</h2><p style="color:var(--text-sub); margin-top:10px;">Please wait while we restore your connection.</p>';
+        document.body.appendChild(overlay);
+    }
+}
+
+// ── MEDIA INIT (Asynchronous Fix) ──
+async function initMedia() {
+  try {
+    const constraints = {
+      video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } },
+      audio: { echoCancellation: true, noiseSuppression: noiseSuppression, autoGainControl: true }
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Attach stream to local video element and FORCE play
+    const lv = document.getElementById('lv');
+    if (lv) {
+        lv.srcObject = stream;
+        lv.play().catch(e => console.log("Video Play Error:", e)); 
+    }
+    
+    streamOk = true; 
+    document.getElementById('localNoCam').classList.remove('show');
+    
+    // Inject tracks if already joined
+    if(joined) {
+        for(const pid in peers) {
+            stream.getTracks().forEach(t => {
+                if (peers[pid]) peers[pid].addTrack(t, stream); 
+            });
+        }
+    } else {
+        tryJoin(); 
+    }
+    setupLocalViz();
+  } catch (err) {
+    console.error("Camera Error:", err);
+    toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
+    try {
+      // Fallback to Audio Only
+      stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      streamOk = true; camOff = true; syncCamUI();
+      document.getElementById('localNoCam').classList.add('show');
+      if(joined) {
+         for(const pid in peers) { 
+             stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); 
+         }
+      } else {
+         tryJoin(); 
+      }
+      setupLocalViz();
+    } catch (e) { 
+        // Ghost Join if NO media available
+        streamOk = true; camOff = true; micMuted = true; syncCamUI();
+        document.getElementById('localNoCam').classList.add('show');
+        tryJoin();
+        toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
+    }
+  }
+}
+
+function tryJoin() {
+  if (wsOk && streamOk && !joined) {
+    joined = true;
+    safeSend({ type: 'join', roomId: ROOM, senderName: ME });
+    updateCount();
+    toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
+    const overlay = document.getElementById('reconnectOverlay');
+    if(overlay) overlay.remove();
+  }
+}
+
+// ── LOCAL AUDIO VISUALIZATION ──
+function setupLocalViz() {
+  if(!stream || !stream.getAudioTracks().length) return;
+  try {
+    aCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = aCtx.createMediaStreamSource(stream);
+    localAn = aCtx.createAnalyser(); localAn.fftSize = 256; localAn.smoothingTimeConstant = 0.5;
+    src.connect(localAn);
+    const buf = new Uint8Array(localAn.frequencyBinCount);
+    const tile = document.getElementById('localTile');
+    const volMeter = document.getElementById('localVol');
+    (function loop() {
+      localAn.getByteFrequencyData(buf);
+      const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+      const isSpeaking = avg > 18 && !micMuted;
+      tile.classList.toggle('speaking', isSpeaking);
+      volMeter.style.width = micMuted ? '0%' : Math.min(avg / 1.2, 100) + '%';
+      requestAnimationFrame(loop);
+    })();
+  } catch (e) {}
+}
+
+function setupRemoteViz(pid, s) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(s);
+    const an = ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = 0.5;
+    src.connect(an); pAudio[pid] = { ctx, an };
+    const buf = new Uint8Array(an.frequencyBinCount);
+    (function loop() {
+      const tile = document.getElementById(`t-${pid}`);
+      if (!tile) { ctx.close(); delete pAudio[pid]; return; }
+      an.getByteFrequencyData(buf);
+      const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+      tile.classList.toggle('speaking', avg > 18);
+      const vol = tile.querySelector('.vol-meter');
+      if (vol) vol.style.width = Math.min(avg / 1.2, 100) + '%';
+      requestAnimationFrame(loop);
+    })();
+  } catch (e) {}
+}
+
+// ── 50+ USER ADAPTIVE BITRATE OPTIMIZER (Throttled) ──
+function optimizeForScaleDebounced() {
+    clearTimeout(optimizeTimeout);
+    optimizeTimeout = setTimeout(optimizeForScale, 1500);
+}
+
+function optimizeForScale() {
+  const peerCount = Object.keys(peers).length;
+  let scaleDown = 1, maxBitrate = 600000, maxFps = 30;
+
+  if (peerCount > 40) {
+    scaleDown = 4; maxBitrate = 40000; maxFps = 10;
+  } else if (peerCount > 25) {
+    scaleDown = 3; maxBitrate = 60000; maxFps = 12;
+  } else if (peerCount > 15) {
+    scaleDown = 2; maxBitrate = 100000; maxFps = 15;
+  } else if (peerCount > 8) {
+    scaleDown = 1.5; maxBitrate = 200000; maxFps = 20;
+  } else if (peerCount > 4) {
+    scaleDown = 1; maxBitrate = 350000; maxFps = 24;
+  }
+
+  for (const pid in peers) {
+    const senders = peers[pid].getSenders();
+    for (const s of senders) {
+      if (s.track?.kind === 'video') {
+        const params = s.getParameters();
+        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+        params.encodings[0].scaleResolutionDownBy = scaleDown;
+        params.encodings[0].maxBitrate = maxBitrate;
+        params.encodings[0].maxFramerate = maxFps;
+        s.setParameters(params).catch(() => {});
+      }
+      if (s.track?.kind === 'audio') {
+        const params = s.getParameters();
+        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+        params.encodings[0].maxBitrate = peerCount > 25 ? 16000 : 32000;
+        s.setParameters(params).catch(() => {});
+      }
+    }
+  }
+
+  // Update network quality badge based on peer count
+  const badge = document.getElementById('netBadge');
+  if (peerCount > 30) {
+    badge.className = 'net-badge poor'; badge.querySelector('span').textContent = 'High Load';
+  } else if (peerCount > 15) {
+    badge.className = 'net-badge fair'; badge.querySelector('span').textContent = 'Moderate';
+  } else {
+    badge.className = 'net-badge good'; badge.querySelector('span').textContent = 'Excellent';
+  }
+}
+
+// ── STATS COLLECTOR ──
+async function collectStats() {
+  if (!showStats) return;
+  const peerCount = Object.keys(peers).length;
+  document.getElementById('statPeers').textContent = peerCount + 1;
+
+  for (const pid in peers) {
+    try {
+      const stats = await peers[pid].getStats();
+      stats.forEach(report => {
+        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+          const br = report.bytesSent;
+          if (pStats[pid]?.lastBytes) {
+            const bps = ((br - pStats[pid].lastBytes) * 8) / 3;
+            document.getElementById('statBitrate').textContent = Math.round(bps / 1000) + ' kbps';
+          }
+          if (!pStats[pid]) pStats[pid] = {};
+          pStats[pid].lastBytes = br;
+          if (report.frameWidth) document.getElementById('statRes').textContent = report.frameWidth + '×' + report.frameHeight;
+          if (report.framesPerSecond) document.getElementById('statFps').textContent = Math.round(report.framesPerSecond) + ' fps';
+        }
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          if (report.currentRoundTripTime) {
+            document.getElementById('statLatency').textContent = Math.round(report.currentRoundTripTime * 1000) + ' ms';
+          }
+        }
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          if (report.packetsLost && report.packetsReceived) {
+            const loss = (report.packetsLost / (report.packetsReceived + report.packetsLost) * 100);
+            document.getElementById('statLoss').textContent = loss.toFixed(1) + '%';
+          }
+        }
+      });
+      break; // Only check first peer for stats display
+    } catch (e) {}
+  }
+}
+
+// ── WEBRTC PEER CONNECTION ──
+function createPC(pid, initiator) {
+  if (peers[pid]) return peers[pid];
+  const pc = new RTCPeerConnection(ICE);
+  peers[pid] = pc;
+
+  if (stream) stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+  pc.onicecandidate = e => {
+    if (e.candidate && ws.readyState === WebSocket.OPEN) {
+        safeSend({ type: 'candidate', candidate: e.candidate, roomId: ROOM, target: pid });
+    }
+  };
+
+  pc.ontrack = e => {
+    addTile(pid, e.streams[0]);
+    setupRemoteViz(pid, e.streams[0]);
+    updateCount(); refreshParts();
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    if (state === 'disconnected' || state === 'failed') {
+      removePeer(pid); updateCount(); refreshParts(); optimizeForScaleDebounced();
+    }
+    const sig = document.querySelector(`#t-${pid} .sig-bars`);
+    if (sig) {
+      sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' ? 'sig-fair' : 'sig-poor');
+    }
+  };
+
+  if (initiator) {
+    pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+      .then(o => { 
+          pc.setLocalDescription(o); 
+          safeSend({ type: 'offer', offer: o, roomId: ROOM, target: pid, senderName: ME }); 
+      })
+      .catch(e => console.error('Offer error:', e));
+  }
+  return pc;
+}
+
+async function flushQ(pid) {
+  if (queues[pid] && peers[pid]) {
+    while (queues[pid].length) {
+      try { await peers[pid].addIceCandidate(new RTCIceCandidate(queues[pid].shift())); } catch (e) {}
+    }
+  }
+}
+
+// ── TILE MANAGEMENT ──
+function addTile(pid, s) {
+  if (document.getElementById(`t-${pid}`)) return;
+  const stage = document.getElementById('stage');
+  const tile = document.createElement('div'); tile.className = 'tile'; tile.id = `t-${pid}`;
+
+  const vid = document.createElement('video');
+  vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
+
+  const name = pNames[pid] || 'Participant';
+  const lbl = document.createElement('div'); lbl.className = 'tlbl';
+  lbl.innerHTML = `<span id="ln-${pid}">${esc(name)}</span> <div class="mic-dot on"><i class="fa-solid fa-microphone"></i></div>`;
+
+  const hand = document.createElement('div'); hand.className = 'hbdg'; hand.id = `hand-${pid}`;
+  hand.innerHTML = '<i class="fa-solid fa-hand"></i>';
+
+  const pin = document.createElement('button'); pin.className = 'pin-b';
+  pin.innerHTML = '<i class="fa-solid fa-thumbtack"></i>'; pin.onclick = () => togglePin(pid);
+
+  const sig = document.createElement('div'); sig.className = 'sig-bars sig-fair';
+  sig.innerHTML = '<div class="b"></div><div class="b"></div><div class="b"></div>';
+
+  const vol = document.createElement('div'); vol.className = 'vol-meter';
+
+  tile.append(vid, lbl, hand, pin, sig, vol);
+  stage.appendChild(tile);
+
+  // Animate in
+  tile.style.opacity = '0'; tile.style.transform = 'scale(0.9)';
+  requestAnimationFrame(() => {
+    tile.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)';
+    tile.style.opacity = '1'; tile.style.transform = 'scale(1)';
+  });
+
+  setTimeout(() => {
+    const el = document.getElementById(`ln-${pid}`);
+    if (el && pNames[pid]) el.textContent = pNames[pid];
+  }, 1000);
+}
+
+function removePeer(pid) {
+  if (peers[pid]) { peers[pid].close(); delete peers[pid]; delete pNames[pid]; }
+  if (pAudio[pid]) { try { pAudio[pid].ctx.close(); } catch(e) {} delete pAudio[pid]; }
+  delete pStats[pid];
+  const t = document.getElementById(`t-${pid}`);
+  if (t) {
+    t.style.opacity = '0'; t.style.transform = 'scale(0.9)';
+    setTimeout(() => t.remove(), 300);
+  }
+  if (pinnedId === pid) pinnedId = null;
+}
+
+// ── VIEW / LAYOUT ──
+function setView(mode) {
+  viewMode = mode;
+  document.getElementById('gallBtn').classList.toggle('on', mode === 'g');
+  document.getElementById('spkBtn').classList.toggle('on', mode === 's');
+  const stage = document.getElementById('stage');
+  if (mode === 's') { stage.className = 'spk' + (activePanel ? ' panel-open' : ''); }
+  else { syncGridClasses(Object.keys(peers).length + 1); }
+}
+
+function syncGridClasses(count) {
+  if (viewMode === 's') return;
+  const stage = document.getElementById('stage');
+  const panelClass = activePanel ? ' panel-open' : '';
+  stage.className = panelClass;
+  if (count <= 1) stage.classList.add('n1');
+  else if (count === 2) stage.classList.add('n2');
+  else if (count === 3) stage.classList.add('n3');
+  else if (count <= 4) stage.classList.add('n4');
+  else if (count <= 6) stage.classList.add('n6');
+  else if (count <= 9) stage.classList.add('n9');
+  else if (count <= 12) stage.classList.add('n12');
+  else if (count <= 16) stage.classList.add('n16');
+  else if (count <= 25) stage.classList.add('n25');
+  else if (count <= 49) stage.classList.add('many');
+  else stage.classList.add('massive');
+}
+
+function updateCount() {
+  const c = Object.keys(peers).length + 1;
+  document.getElementById('pCount').textContent = c;
+  document.getElementById('infoParts').textContent = c;
+  syncGridClasses(c);
+}
+
+function updateHandCount() {
+  const hands = document.querySelectorAll('.hbdg.show').length;
+  const badge = document.getElementById('handCount');
+  if (hands > 0) { badge.textContent = hands; badge.classList.add('show'); }
+  else { badge.classList.remove('show'); }
+}
+
+// ── PARTICIPANTS LIST ──
+function refreshParts() {
+  const list = document.getElementById('partsList');
+  const search = list.querySelector('.p-search');
+  list.innerHTML = '';
+  if (search) list.appendChild(search);
+  else list.appendChild(createSearchInput());
+  
+  list.appendChild(pRow(ME, true, !micMuted, !camOff));
+  for (const pid in peers) list.appendChild(pRow(pNames[pid] || 'Participant', false, true, true));
+}
+
+function createSearchInput() {
+  const inp = document.createElement('input');
+  inp.className = 'p-search'; inp.id = 'pSearch'; inp.type = 'text';
+  inp.placeholder = 'Search participants…'; inp.autocomplete = 'off';
+  inp.oninput = filterParts;
+  return inp;
+}
+
+function filterParts() {
+  const q = (document.getElementById('pSearch')?.value || '').toLowerCase();
+  document.querySelectorAll('#partsList .pitem').forEach(el => {
+    const name = el.querySelector('.pname')?.textContent.toLowerCase() || '';
+    el.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+function pRow(name, isMe, mic, cam) {
+  const d = document.createElement('div'); d.className = 'pitem';
+  d.innerHTML = `<div class="pav">${String(name)[0].toUpperCase()}</div>
+    <div class="pinfo">
+      <div class="pname">${esc(name)}</div>
+      <div class="prole">${isMe ? 'You' : 'Participant'}${isMe && document.getElementById('hostBadge')?.style.display !== 'none' ? ' <span class="role-tag">Host</span>' : ''}</div>
+    </div>
+    <div class="pst">
+      <i class="fa-solid fa-${mic ? 'microphone' : 'microphone-slash'}" style="color:${mic ? 'var(--success)' : 'rgba(255,255,255,0.15)'}"></i>
+      <i class="fa-solid fa-${cam ? 'video' : 'video-slash'}" style="color:${cam ? 'var(--success)' : 'rgba(255,255,255,0.15)'}"></i>
+    </div>`;
+  return d;
+}
+
+// ── PANELS ──
+function togglePanel(name) {
+  const panels = { c: 'chatPanel', p: 'partsPanel', s: 'settingsPanel' };
+  const stage = document.getElementById('stage');
+
+  // Close all
+  Object.values(panels).forEach(id => document.getElementById(id).classList.remove('open'));
+
+  if (activePanel === name) {
+    activePanel = null;
+    stage.classList.remove('panel-open');
+    return;
+  }
+
+  const pid = panels[name];
+  if (pid) document.getElementById(pid).classList.add('open');
+  activePanel = name;
+  stage.classList.add('panel-open');
+
+  if (name === 'c') {
+    document.getElementById('chatDot').classList.remove('show');
+    setTimeout(() => document.getElementById('chatIn')?.focus(), 300);
+  }
+  if (name === 'p') refreshParts();
+}
+
+// ── ADVANCED CHAT (Smart Grouping & Typing) ──
+let typingTimer;
+function showTypingIndicator(name) {
+    let indicator = document.getElementById('typingIndicator');
+    const chatList = document.getElementById('chatList');
+    
+    if(!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'typingIndicator';
+        indicator.className = 'typing-indicator';
+        indicator.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div><span id="typingName"></span>`;
+        chatList.appendChild(indicator);
+    }
+    document.getElementById('typingName').textContent = `${esc(name)} is typing...`;
+    
+    // Move indicator to bottom
+    chatList.appendChild(indicator);
+    indicator.classList.add('show');
+    chatList.scrollTop = chatList.scrollHeight;
+    
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => { indicator.classList.remove('show'); }, 2000);
+}
+
+function sendChat() {
+  const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
+  appendMsg(ME, msg, true);
+  safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg });
+  el.value = '';
+  // Clear typing indicator for self
+  const ind = document.getElementById('typingIndicator');
+  if(ind) ind.classList.remove('show');
+}
+function onCK(e) { if (e.key === 'Enter') sendChat(); }
+
+function handleFileSelect(input) {
+    if(input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        toast(`File ${esc(fileName)} ready for secure transfer.`, "fa-solid fa-file-shield", "var(--success)");
+        input.value = '';
+    }
+}
+
+function appendMsg(sender, text, isMe) {
+  const c = document.getElementById('chatList');
+  
+  // Smart Grouping Logic
+  let isGrouped = false;
+  let classes = `cmsg ${isMe ? 'me' : ''}`;
+  
+  // Find the last actual message group (ignoring typing indicator)
+  const children = Array.from(c.children);
+  let lastMsgGroup = null;
+  for (let i = children.length - 1; i >= 0; i--) {
+      if (children[i].id !== 'typingIndicator') {
+          lastMsgGroup = children[i];
+          break;
+      }
+  }
+  
+  if (lastMsgSender === sender && lastMsgGroup && !lastMsgGroup.classList.contains('sys')) {
+      isGrouped = true;
+      // Find the actual message bubble inside the group
+      const prevMsg = lastMsgGroup.lastElementChild; 
+      if(prevMsg && prevMsg.classList.contains('cmsg')) {
+          prevMsg.classList.remove('grouped-btm');
+          prevMsg.classList.add('grouped-top');
+          classes += ' grouped-btm';
+      }
+  } else {
+      lastMsgSender = sender;
+  }
+
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const ind = document.getElementById('typingIndicator');
+
+  if(isGrouped) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = classes;
+      msgDiv.innerHTML = `${esc(text)} <span class="cmsg-time">${now}</span>`;
+      lastMsgGroup.appendChild(msgDiv);
+  } else {
+      const group = document.createElement('div');
+      group.className = `cmsg-group ${isMe ? 'me' : ''}`;
+      group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>
+        <div class="${classes}">${esc(text)} <span class="cmsg-time">${now}</span></div>`;
+      
+      if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
+  }
+  
+  c.scrollTop = c.scrollHeight;
+}
+
+// ── CONTROLS ──
+async function toggleCam() {
+  let track = stream?.getVideoTracks()[0]; 
+  
+  if (!track) {
+      try {
+          const vidStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const newTrack = vidStream.getVideoTracks()[0];
+          stream.addTrack(newTrack);
+          document.getElementById('lv').srcObject = stream;
+          
+          for(const pid in peers) {
+              const sender = peers[pid].getSenders().find(s => s.track?.kind === 'video');
+              if(sender) sender.replaceTrack(newTrack);
+              else if (peers[pid]) peers[pid].addTrack(newTrack, stream);
+          }
+          track = newTrack;
+          camOff = false;
+      } catch(e) {
+          toast("Camera permission denied", "fa-solid fa-video-slash", "var(--danger)");
+          return;
+      }
+  } else {
+      camOff = !camOff; 
+      track.enabled = !camOff; 
+  }
+  
+  syncCamUI();
+  document.getElementById('localNoCam').classList.toggle('show', camOff); 
+  refreshParts();
+}
+
+function toggleMic() {
+  const track = stream?.getAudioTracks()[0]; if (!track) return;
+  micMuted = !micMuted; track.enabled = !micMuted;
+  const btn = document.getElementById('micBtn'), ico = document.getElementById('micIco'), ind = document.getElementById('localMicInd');
+  if (micMuted) {
+    ico.className = 'fa-solid fa-microphone-slash';
+    ind.className = 'mic-dot off'; ind.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+    btn.classList.add('off');
+  } else {
+    ico.className = 'fa-solid fa-microphone';
+    ind.className = 'mic-dot on'; ind.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+    btn.classList.remove('off');
+  }
+  refreshParts();
+}
+
+function syncCamUI() {
+  const btn = document.getElementById('camBtn'), ico = document.getElementById('camIco');
+  if (camOff) { ico.className = 'fa-solid fa-video-slash'; btn.classList.add('off'); }
+  else { ico.className = 'fa-solid fa-video'; btn.classList.remove('off'); }
+}
+
+async function toggleScreen() {
+  const btn = document.getElementById('shareBtn');
+  try {
+    if (!sharing) {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
+      origVT = stream.getVideoTracks()[0];
+      const svt = screenStream.getVideoTracks()[0];
+      document.getElementById('localPres').classList.add('show');
+      for (const pid in peers) {
+        const s = peers[pid].getSenders().find(s => s.track?.kind === 'video');
+        if (s) s.replaceTrack(svt);
+      }
+      sharing = true; btn.classList.add('on');
+      svt.onended = stopScreen;
+      toast('Presenting to everyone', "fa-solid fa-display", "var(--success)");
+    } else stopScreen();
+  } catch (e) { /* user cancelled */ }
+}
+function stopScreen() {
+  const btn = document.getElementById('shareBtn');
+  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+  if (origVT) {
+    for (const pid in peers) { const s = peers[pid].getSenders().find(s => s.track?.kind === 'video'); if (s) s.replaceTrack(origVT); }
+  }
+  document.getElementById('localPres').classList.remove('show');
+  sharing = false; btn.classList.remove('on');
+  toast('Stopped presenting', "fa-solid fa-display", "var(--text-sub)");
+}
+
+function toggleHand() {
+  handUp = !handUp;
+  document.getElementById('handBtn').classList.toggle('on', handUp);
+  document.getElementById('localHand').classList.toggle('show', handUp);
+  safeSend({ type: 'hand_raise', roomId: ROOM, raised: handUp, senderName: ME });
+  toast(handUp ? 'Hand raised ✋' : 'Hand lowered', "fa-solid fa-hand", "var(--warning)");
+  updateHandCount();
+}
+
+function toggleReact(e) { if (e) e.stopPropagation(); document.getElementById('rpop').classList.toggle('show'); }
+function doReact(emoji) {
+  document.getElementById('rpop').classList.remove('show');
+  spawnEmoji(emoji);
+  safeSend({ type: 'reaction', roomId: ROOM, emoji, senderName: ME });
+}
+function spawnEmoji(emoji) {
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div'); el.className = 'fem'; el.textContent = emoji;
+      el.style.left = (25 + Math.random() * 50) + '%'; el.style.bottom = '130px';
+      el.style.animationDuration = (2.5 + Math.random() * 1.5) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 150);
+  }
+}
+
+function togglePin(pid) {
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('pinned'));
+  if (pinnedId === pid) { pinnedId = null; toast('Unpinned', "fa-solid fa-thumbtack"); }
+  else {
+    pinnedId = pid; const t = document.getElementById(`t-${pid}`);
+    if (t) { t.classList.add('pinned'); t.parentElement.prepend(t); }
+    toast('Pinned to stage', "fa-solid fa-thumbtack", "var(--warning)");
+  }
+}
+
+async function togglePiP() {
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+      document.getElementById('pipBtn').classList.remove('on');
+    } else {
+      const vids = document.querySelectorAll('#stage video');
+      const target = vids.length > 1 ? vids[1] : vids[0];
+      if (target) {
+        await target.requestPictureInPicture();
+        document.getElementById('pipBtn').classList.add('on');
+        toast('Picture-in-Picture enabled', "fa-solid fa-up-right-and-down-left-from-center", "var(--primary)");
+      }
+    }
+  } catch (e) { toast('PiP not supported', "fa-solid fa-circle-exclamation", "var(--warning)"); }
+}
+
+// ── HOST CONTROLS ──
+function muteAll() {
+  safeSend({ type: 'mute_all', roomId: ROOM });
+  toast("Silenced all participants", "fa-solid fa-microphone-lines-slash", "var(--warning)");
+}
+function copyLink() { navigator.clipboard.writeText(location.href).then(() => toast("Meeting link copied!", "fa-solid fa-link", "var(--success)")); }
+function copyField(id) {
+  const el = document.getElementById(id);
+  const text = el?.childNodes[0]?.textContent?.trim() || '';
+  navigator.clipboard.writeText(text).then(() => toast("Copied!", "fa-solid fa-check", "var(--success)"));
+}
+
+// ── SETTINGS TOGGLES ──
+function toggleNoise() {
+  noiseSuppression = !noiseSuppression;
+  document.getElementById('noiseSw').classList.toggle('on', noiseSuppression);
+  const track = stream?.getAudioTracks()[0];
+  if (track) {
+    track.applyConstraints({ noiseSuppression }).catch(() => {});
+    toast(noiseSuppression ? 'Noise suppression ON' : 'Noise suppression OFF', "fa-solid fa-wand-magic-sparkles", "var(--primary)");
+  }
+}
+function toggleVBG() {
+  document.getElementById('vbgSw').classList.toggle('on');
+  toast('Virtual backgrounds coming soon!', "fa-solid fa-image", "var(--accent)");
+}
+function toggleMirror() {
+  mirrorSelf = !mirrorSelf;
+  document.getElementById('mirrorSw').classList.toggle('on', mirrorSelf);
+  document.getElementById('lv').style.transform = mirrorSelf ? 'scaleX(-1)' : 'none';
+}
+function toggleHD() {
+  hdMode = !hdMode;
+  document.getElementById('hdSw').classList.toggle('on', hdMode);
+  const track = stream?.getVideoTracks()[0];
+  if (track) {
+    track.applyConstraints({
+      width: { ideal: hdMode ? 1280 : 640 },
+      height: { ideal: hdMode ? 720 : 360 },
+      frameRate: { ideal: hdMode ? 30 : 24 }
+    }).catch(() => {});
+    toast(hdMode ? 'HD Video ON — uses more bandwidth' : 'Standard Video', "fa-solid fa-gauge-high", hdMode ? "var(--warning)" : "var(--primary)");
+    optimizeForScaleDebounced();
+  }
+}
+function toggleStats() {
+  showStats = !showStats;
+  document.getElementById('statsSw').classList.toggle('on', showStats);
+  document.getElementById('statsFloat').classList.toggle('show', showStats);
+}
+function toggleRec() {
+  recording = !recording;
+  document.getElementById('recSw').classList.toggle('on', recording);
+  document.getElementById('recBtn').classList.toggle('on', recording);
+  document.getElementById('recBar').classList.toggle('show', recording);
+  toast(recording ? 'Recording started' : 'Recording stopped', "fa-solid fa-circle-dot", recording ? "var(--danger)" : "var(--text-sub)");
+}
+function toggleSounds() {
+  joinSounds = !joinSounds;
+  document.getElementById('soundSw').classList.toggle('on', joinSounds);
+}
+function toggleAutoHide() {
+  autoHide = !autoHide;
+  document.getElementById('autoHideSw').classList.toggle('on', autoHide);
+  if (autoHide) startAutoHide(); else stopAutoHide();
+}
+
+function startAutoHide() {
+  const cbar = document.getElementById('cbar'), hdr = document.getElementById('hdr');
+  document.addEventListener('mousemove', resetAutoHide);
+  autoHideTimer = setTimeout(() => {
+    cbar.style.opacity = '0'; cbar.style.pointerEvents = 'none';
+    hdr.style.opacity = '0';
+  }, 4000);
+}
+function resetAutoHide() {
+  const cbar = document.getElementById('cbar'), hdr = document.getElementById('hdr');
+  cbar.style.opacity = '1'; cbar.style.pointerEvents = 'auto';
+  hdr.style.opacity = '1';
+  clearTimeout(autoHideTimer);
+  if (autoHide) {
+    autoHideTimer = setTimeout(() => {
+      cbar.style.opacity = '0'; cbar.style.pointerEvents = 'none';
+      hdr.style.opacity = '0';
+    }, 4000);
+  }
+}
+function stopAutoHide() {
+  clearTimeout(autoHideTimer);
+  document.removeEventListener('mousemove', resetAutoHide);
+  document.getElementById('cbar').style.opacity = '1';
+  document.getElementById('cbar').style.pointerEvents = 'auto';
+  document.getElementById('hdr').style.opacity = '1';
+}
+
+// ── MODALS ──
+function toggleSC() { document.getElementById('scOver').classList.toggle('show'); }
+function toggleInfo() { document.getElementById('infoOv').classList.toggle('show'); }
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  switch (e.key.toLowerCase()) {
+    case 'm': toggleMic(); break;
+    case 'v': toggleCam(); break;
+    case 's': toggleScreen(); break;
+    case 'r': toggleRec(); break;
+    case 'c': togglePanel('c'); break;
+    case 'h': toggleHand(); break;
+    case 'e': toggleReact(); break;
+    case 'p': togglePiP(); break;
+    case 'd': toggleStats(); document.getElementById('statsSw').classList.toggle('on', showStats); break;
+    case 'f':
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {});
+      break;
+    case 'escape':
+      document.getElementById('rpop').classList.remove('show');
+      document.getElementById('scOver').classList.remove('show');
+      document.getElementById('infoOv').classList.remove('show');
+      if (activePanel) togglePanel(activePanel);
+      break;
+  }
+});
+
+// Close reaction popup on outside click
+document.addEventListener('click', e => {
+  const popup = document.getElementById('rpop'), rb = document.getElementById('reactBtn');
+  if (popup.classList.contains('show') && !rb.contains(e.target) && !popup.contains(e.target)) popup.classList.remove('show');
+});
+
+// ── TOAST SYSTEM ──
+function toast(msg, ico = "fa-solid fa-circle-info", clr = "var(--primary)") {
+  const dock = document.getElementById('toasts');
+  const el = document.createElement('div'); el.className = 'tst';
+  el.innerHTML = `<i class="${ico}" style="color:${clr}"></i> <span>${esc(msg)}</span>`;
+  dock.appendChild(el);
+  requestAnimationFrame(() => { requestAnimationFrame(() => el.classList.add('show')); });
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3500);
+}
+
+// ── AUDIO FEEDBACK ──
+function playTone(freq, dur, vol) {
+  if (!joinSounds) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    gain.gain.value = vol;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    setTimeout(() => ctx.close(), (dur + 0.1) * 1000);
+  } catch(e) {}
+}
+
+// ── UTILS ──
+function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+// ── CLEANUP ──
+function onBU(e) { e.preventDefault(); e.returnValue = ''; }
+window.addEventListener('beforeunload', onBU);
+
+function endCall() {
+  window.removeEventListener('beforeunload', onBU);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+  if (aCtx) aCtx.close();
+  for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+  location.href = '/dashboard';
+}
+
+// ── BOOT ──
+initMedia();
+
+/*]]>*/
+</script>
+</body>
+</html>

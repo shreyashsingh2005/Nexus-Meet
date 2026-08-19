@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nexus Meet - Premium Video Conferencing</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #050505;
+  --primary: #4f86f7;
+  --primary-hover: #1a73e8;
+  --text-main: #ffffff;
+  --text-sub: #a0aab5;
+  --border-light: rgba(255, 255, 255, 0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Animated Backgrounds ── */
+.bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 50px 50px; z-index: 0; mask-image: radial-gradient(circle at center, black 30%, transparent 80%); -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%); pointer-events: none; animation: panGrid 20s linear infinite; }
+@keyframes panGrid { 0% { transform: translateY(0); } 100% { transform: translateY(50px); } }
+
+.ambient-glow-1 { position: fixed; top: -20%; left: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(79,134,247,0.15) 0%, rgba(0,0,0,0) 60%); filter: blur(80px); z-index: 0; animation: float 12s ease-in-out infinite alternate; pointer-events: none; }
+.ambient-glow-2 { position: fixed; bottom: -20%; right: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(138,180,248,0.1) 0%, rgba(0,0,0,0) 60%); filter: blur(100px); z-index: 0; animation: float 15s ease-in-out infinite alternate-reverse; pointer-events: none; }
+
+@keyframes float { 0% { transform: translate(0, 0); } 100% { transform: translate(40px, -40px); } }
+
+/* ── Navbar ── */
+nav { display: flex; justify-content: space-between; align-items: center; padding: 24px 5%; position: relative; z-index: 10; animation: slideDown 1s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.logo-mark { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--primary-hover), var(--primary)); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(79, 134, 247, 0.5); border: 1px solid rgba(255,255,255,0.2); }
+.logo-mark svg { width: 20px; height: 20px; fill: #fff; }
+.logo-name { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.5px; color: #fff; }
+.logo-name span { color: var(--primary); }
+
+.nav-links { display: flex; gap: 32px; }
+.nav-links a { color: var(--text-sub); text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: 0.3s; }
+.nav-links a:hover { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+/* ── Hero Section ── */
+.hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 20px 40px 20px; position: relative; z-index: 10; }
+
+.badge { background: rgba(79, 134, 247, 0.1); border: 1px solid rgba(79, 134, 247, 0.25); color: var(--primary); padding: 8px 18px; border-radius: 30px; font-size: 0.85rem; font-weight: 600; margin-bottom: 30px; display: inline-flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); animation: fadeIn 1s ease 0.2s both; }
+.badge i { font-size: 0.9rem; }
+
+h1 { font-size: clamp(3.5rem, 7vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -2px; max-width: 900px; margin-bottom: 24px; background: linear-gradient(135deg, #ffffff 30%, #a0aab5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeIn 1s ease 0.4s both; }
+
+p.subtitle { font-size: 1.2rem; color: var(--text-sub); max-width: 650px; line-height: 1.6; margin-bottom: 40px; font-weight: 400; animation: fadeIn 1s ease 0.6s both; }
+
+/* Google Auth Button - ADJUSTED FOR PREMIUM LOOK */
+.btn-google {
+  background: #ffffff; color: #050505; text-decoration: none; 
+  padding: 14px 32px; border-radius: 50px; /* Perfect Pill Shape */
+  font-size: 1rem; font-weight: 600; display: inline-flex; align-items: center; gap: 12px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+  box-shadow: 0 8px 25px rgba(255,255,255,0.15), 0 0 0 1px rgba(255,255,255,0.1); 
+  animation: fadeIn 1s ease 0.8s both; position: relative; overflow: hidden;
+  margin-top: 10px; z-index: 20;
+}
+.btn-google::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(to right, transparent, rgba(0,0,0,0.06), transparent); transform: skewX(-20deg); transition: 0.5s; }
+.btn-google:hover::before { left: 100%; }
+.btn-google:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(255,255,255,0.25), 0 0 0 1px rgba(255,255,255,0.2); background: #fdfdfd; }
+.btn-google img { width: 20px; height: 20px; }
+
+/* ── Floating Decorative Elements (CSS Only Mockups) ── */
+.floating-elements { position: absolute; inset: 0; pointer-events: none; z-index: 5; perspective: 1000px; }
+
+.f-card { position: absolute; background: rgba(20,20,25,0.6); backdrop-filter: blur(12px); border: 1px solid var(--border-light); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+
+/* Left Card */
+.f-card-1 { width: 180px; height: 120px; top: 25%; left: 8%; transform: rotate(-10deg) translateZ(-50px); animation: floatCard 8s ease-in-out infinite alternate; opacity: 0; animation-delay: 1s; animation-fill-mode: forwards; }
+.f-card-1 .av-ph { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #fbbc04, #ea4335); }
+
+/* Right Card */
+.f-card-2 { width: 220px; height: 140px; top: 40%; right: 5%; transform: rotate(12deg) translateZ(50px); animation: floatCard 10s ease-in-out infinite alternate-reverse; opacity: 0; animation-delay: 1.5s; animation-fill-mode: forwards; }
+.f-card-2 .av-ph { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #34a853, var(--primary)); }
+
+.mic-ph { position: absolute; bottom: 8px; left: 8px; width: 24px; height: 24px; background: rgba(0,0,0,0.5); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.6rem; border: 1px solid rgba(255,255,255,0.1); }
+
+@keyframes floatCard { 
+  0% { transform: translateY(0) rotate(var(--rot, 0deg)); opacity: 1; } 
+  100% { transform: translateY(-30px) rotate(var(--rot, 5deg)); opacity: 1; } 
+}
+.f-card-1 { --rot: -10deg; } .f-card-2 { --rot: 12deg; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Footer - Adjusted to not overlap */
+footer { width: 100%; text-align: center; padding: 20px 0; font-size: 0.85rem; color: #5f6368; z-index: 10; animation: fadeIn 1s ease 1s both; background: transparent; }
+
+@media(max-width: 900px) { .floating-elements { display: none; } h1 { font-size: 3rem; } }
+@media(max-width: 600px) { nav { justify-content: center; } .nav-links { display: none; } h1 { font-size: 2.5rem; } .badge { font-size: 0.75rem; } }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="ambient-glow-1"></div>
+<div class="ambient-glow-2"></div>
+
+<nav>
+  <a class="logo" href="#">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><rect x="1" y="6" width="14" height="12" rx="2"/><path d="M15 9.5l7-4v13l-7-4V9.5z"/></svg></div>
+    <span class="logo-name">Nexus <span>Meet</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="#">Solutions</a>
+    <a href="#">Security</a>
+    <a href="#">For Enterprise</a>
+  </div>
+</nav>
+
+<div class="floating-elements">
+  <div class="f-card f-card-1">
+    <div class="av-ph"></div>
+    <div class="mic-ph"><i class="fa-solid fa-microphone-slash" style="color: #ea4335;"></i></div>
+  </div>
+  <div class="f-card f-card-2">
+    <div class="av-ph"></div>
+    <div class="mic-ph"><i class="fa-solid fa-microphone" style="color: #34a853;"></i></div>
+  </div>
+</div>
+
+<main class="hero">
+  <div class="badge"><i class="fa-solid fa-shield-halved"></i> 100% End-to-End Encrypted</div>
+  
+  <h1>Connect and collaborate <br>without limits.</h1>
+  
+  <p class="subtitle">Experience crystal-clear video calls, instant screen sharing, and real-time chat in a secure, ultra-dark cinematic environment built for professionals.</p>
+  
+  <a href="/oauth2/authorization/google" class="btn-google">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+    Continue with Google
+  </a>
+</main>
+
+<footer>
+  &copy; 2026 Nexus Meet. Designed for the future.
+</footer>
+
+</body>
+</html>
