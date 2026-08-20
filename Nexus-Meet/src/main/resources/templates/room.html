@@ -1078,6 +1078,7 @@ const ICE = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
     { urls: 'stun:stun.services.mozilla.com' }
   ],
   sdpSemantics: 'unified-plan',
@@ -1113,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
 
-  // FIX: Unblock Loader automatically if stuck (Ultimate Failsafe)
+  // FAILSAFE: Unblock Loader automatically if stuck
   setTimeout(() => {
       removeLoader();
       if(!joined && wsOk) {
@@ -1157,7 +1158,10 @@ function connectWebSocket() {
     };
 
     ws.onmessage = async (ev) => {
-      const d = JSON.parse(ev.data), sid = d.sender;
+      const d = JSON.parse(ev.data);
+      // FIX: Robust ID matching (handles different backend variable names)
+      const sid = d.sender || d.senderId || d.sessionId;
+      
       if (d.senderName && sid) pNames[sid] = d.senderName;
 
       switch (d.type) {
@@ -1206,11 +1210,15 @@ function connectWebSocket() {
           flushQ(sid);
           const ans = await peers[sid].createAnswer();
           await peers[sid].setLocalDescription(ans);
-          safeSend({ type: 'answer', answer: ans, roomId: ROOM, target: sid, senderName: ME });
+          // FIX: Send both target and targetId to be safe against backend mismatch
+          safeSend({ type: 'answer', answer: ans, roomId: ROOM, target: sid, targetId: sid, senderName: ME });
           return;
 
         case 'answer':
-          if (sid && peers[sid]) { await peers[sid].setRemoteDescription(new RTCSessionDescription(d.answer)); flushQ(sid); }
+          if (sid && peers[sid]) { 
+              await peers[sid].setRemoteDescription(new RTCSessionDescription(d.answer)); 
+              flushQ(sid); 
+          }
           return;
 
         case 'candidate':
@@ -1260,7 +1268,6 @@ function removeLoader() {
 // ── MEDIA INIT (ULTIMATE MOBILE OPTIMIZATION) ──
 async function initMedia() {
   try {
-    // FIX: Replaced 'max' with 'ideal' to prevent OverconstrainedError on strict mobile cameras
     const mobileConstraints = { video: { width: { ideal: 480 }, frameRate: { ideal: 15 }, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } };
     const desktopConstraints = { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
@@ -1285,7 +1292,6 @@ async function initMedia() {
     
   } catch (err) {
     console.error("Camera Error:", err);
-    // Generic fallback if specific constraints failed
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const lv = document.getElementById('lv');
@@ -1296,7 +1302,6 @@ async function initMedia() {
       else { tryJoin(); }
       setupLocalViz();
     } catch (e2) {
-        // Audio only fallback
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
           streamOk = true; camOff = true; syncCamUI();
@@ -1306,7 +1311,6 @@ async function initMedia() {
           setupLocalViz();
           toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
         } catch(e3) {
-          // No media fallback
           streamOk = true; camOff = true; micMuted = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
           tryJoin();
@@ -1473,13 +1477,17 @@ function createPC(pid, initiator) {
 
   pc.onicecandidate = e => {
     if (e.candidate && ws.readyState === WebSocket.OPEN) {
-        safeSend({ type: 'candidate', candidate: e.candidate, roomId: ROOM, target: pid });
+        // FIX: Sending both target and targetId for backend failsafe
+        safeSend({ type: 'candidate', candidate: e.candidate, roomId: ROOM, target: pid, targetId: pid });
     }
   };
 
+  // FIX: WebRTC Race Condition Solved! Check and append stream correctly.
   pc.ontrack = e => {
-    addTile(pid, e.streams[0]);
-    setupRemoteViz(pid, e.streams[0]);
+    // MediaStream recovery for Safari/Firefox
+    const remoteStream = e.streams && e.streams.length > 0 ? e.streams[0] : new MediaStream([e.track]);
+    addTile(pid, remoteStream);
+    setupRemoteViz(pid, remoteStream);
     updateCount(); refreshParts();
   };
 
@@ -1496,7 +1504,8 @@ function createPC(pid, initiator) {
     pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
       .then(o => { 
           pc.setLocalDescription(o); 
-          safeSend({ type: 'offer', offer: o, roomId: ROOM, target: pid, senderName: ME }); 
+          // FIX: targetId failsafe
+          safeSend({ type: 'offer', offer: o, roomId: ROOM, target: pid, targetId: pid, senderName: ME }); 
       })
       .catch(e => console.error('Offer error:', e));
   }
@@ -1511,11 +1520,21 @@ async function flushQ(pid) {
   }
 }
 
-// ── TILE MANAGEMENT ──
+// ── TILE MANAGEMENT (RACE CONDITION FIX) ──
 function addTile(pid, s) {
-  if (document.getElementById(`t-${pid}`)) return;
+  let tile = document.getElementById(`t-${pid}`);
+  
+  // FIX: If Audio track arrived first and made the tile, update it when Video track arrives!
+  if (tile) {
+      const vid = tile.querySelector('video');
+      if (vid && s) vid.srcObject = s;
+      return;
+  }
+
   const stage = document.getElementById('stage');
-  const tile = document.createElement('div'); tile.className = 'tile'; tile.id = `t-${pid}`;
+  tile = document.createElement('div'); 
+  tile.className = 'tile'; 
+  tile.id = `t-${pid}`;
 
   const vid = document.createElement('video');
   vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
