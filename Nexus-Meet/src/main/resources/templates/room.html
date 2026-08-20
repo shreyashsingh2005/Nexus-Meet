@@ -85,6 +85,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   background-size: 256px 256px; pointer-events: none;
 }
 
+/* ── STARTUP LOADER ── */
+#globalLoader {
+  position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.6s ease;
+}
+#globalLoader i { font-size: 3.5rem; color: var(--primary); margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--primary-glow)); }
+#globalLoader h2 { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: 1px; }
+#globalLoader p { font-size: 0.9rem; color: var(--text-sub); margin-top: 10px; }
+
 /* ═══════════ HEADER ═══════════ */
 #hdr {
   position: fixed; top: 0; left: 0; right: 0; height: 72px;
@@ -733,6 +743,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 </style>
 </head>
 <body>
+
+<!-- ── STARTUP LOADER ── -->
+<div id="globalLoader">
+  <i class="fa-solid fa-circle-notch fa-spin"></i>
+  <h2>Joining Meeting...</h2>
+  <p>Initializing camera and secure connection</p>
+</div>
+
 <div class="bg-canvas">
   <div class="bg-orb bg-orb-1"></div>
   <div class="bg-orb bg-orb-2"></div>
@@ -1282,6 +1300,11 @@ async function initMedia() {
         streamOk = true; camOff = true; micMuted = true; syncCamUI();
         document.getElementById('localNoCam').classList.add('show');
         tryJoin();
+        
+        // Hide global loader even on failure
+        const loader = document.getElementById('globalLoader');
+        if(loader) loader.remove();
+        
         toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
     }
   }
@@ -1293,12 +1316,20 @@ function tryJoin() {
     safeSend({ type: 'join', roomId: ROOM, senderName: ME });
     updateCount();
     toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
+    
+    // HIDE STARTUP LOADER SMOOTHLY
+    const loader = document.getElementById('globalLoader');
+    if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 600);
+    }
+
     const overlay = document.getElementById('reconnectOverlay');
     if(overlay) overlay.remove();
   }
 }
 
-// ── LOCAL AUDIO VISUALIZATION ──
+// ── LOCAL AUDIO VISUALIZATION (CPU OPTIMIZED) ──
 function setupLocalViz() {
   if(!stream || !stream.getAudioTracks().length) return;
   try {
@@ -1309,13 +1340,19 @@ function setupLocalViz() {
     const buf = new Uint8Array(localAn.frequencyBinCount);
     const tile = document.getElementById('localTile');
     const volMeter = document.getElementById('localVol');
-    (function loop() {
+    
+    let lastTime = 0;
+    (function loop(time) {
+      requestAnimationFrame(loop);
+      // Throttle to roughly ~10-15 FPS to save CPU
+      if (time - lastTime < 60) return;
+      lastTime = time;
+
       localAn.getByteFrequencyData(buf);
       const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
       const isSpeaking = avg > 18 && !micMuted;
       tile.classList.toggle('speaking', isSpeaking);
       volMeter.style.width = micMuted ? '0%' : Math.min(avg / 1.2, 100) + '%';
-      requestAnimationFrame(loop);
     })();
   } catch (e) {}
 }
@@ -1327,15 +1364,22 @@ function setupRemoteViz(pid, s) {
     const an = ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = 0.5;
     src.connect(an); pAudio[pid] = { ctx, an };
     const buf = new Uint8Array(an.frequencyBinCount);
-    (function loop() {
+    
+    let lastTime = 0;
+    (function loop(time) {
       const tile = document.getElementById(`t-${pid}`);
       if (!tile) { ctx.close(); delete pAudio[pid]; return; }
+      
+      requestAnimationFrame(loop);
+      // Throttle CPU load for remote videos
+      if (time - lastTime < 60) return;
+      lastTime = time;
+
       an.getByteFrequencyData(buf);
       const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
       tile.classList.toggle('speaking', avg > 18);
       const vol = tile.querySelector('.vol-meter');
       if (vol) vol.style.width = Math.min(avg / 1.2, 100) + '%';
-      requestAnimationFrame(loop);
     })();
   } catch (e) {}
 }
@@ -1508,10 +1552,10 @@ function addTile(pid, s) {
   tile.append(vid, lbl, hand, pin, sig, vol);
   stage.appendChild(tile);
 
-  // Animate in
+  // Animate in quickly
   tile.style.opacity = '0'; tile.style.transform = 'scale(0.9)';
   requestAnimationFrame(() => {
-    tile.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)';
+    tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease-out';
     tile.style.opacity = '1'; tile.style.transform = 'scale(1)';
   });
 
@@ -1528,7 +1572,7 @@ function removePeer(pid) {
   const t = document.getElementById(`t-${pid}`);
   if (t) {
     t.style.opacity = '0'; t.style.transform = 'scale(0.9)';
-    setTimeout(() => t.remove(), 300);
+    setTimeout(() => t.remove(), 250); // Faster removal
   }
   if (pinnedId === pid) pinnedId = null;
 }
@@ -2032,18 +2076,31 @@ function playTone(freq, dur, vol) {
 // ── UTILS ──
 function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-// ── CLEANUP ──
+// ── CLEANUP (FIXED FOR INSTANT EXIT UX) ──
 function onBU(e) { e.preventDefault(); e.returnValue = ''; }
 window.addEventListener('beforeunload', onBU);
 
 function endCall() {
-  window.removeEventListener('beforeunload', onBU);
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-  if (aCtx) aCtx.close();
-  for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
-  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-  location.href = '/dashboard';
+  // Instant visual feedback for the user
+  document.body.innerHTML = `
+    <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
+        <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
+        <h2 style="font-weight:600;letter-spacing:1px;">Leaving Meeting...</h2>
+    </div>
+  `;
+
+  // Process cleanup asynchronously to not block the redirect
+  setTimeout(() => {
+    window.removeEventListener('beforeunload', onBU);
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    if (aCtx) { try { aCtx.close(); } catch(e){} }
+    for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
+    if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+    
+    // Redirect instantly
+    window.location.href = '/dashboard';
+  }, 50);
 }
 
 // ── BOOT ──
