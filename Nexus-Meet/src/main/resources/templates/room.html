@@ -43,6 +43,8 @@
   --shadow-sm: 0 4px 12px rgba(0,0,0,0.3);
   --shadow-md: 0 8px 30px rgba(0,0,0,0.5);
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
+  --shadow-glow-blue: 0 0 40px rgba(59,130,246,0.15);
+  --shadow-glow-purple: 0 0 40px rgba(139,92,246,0.1);
   --transition-fast: 0.15s ease;
   --transition-med: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -81,16 +83,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 256px 256px; pointer-events: none;
 }
-
-/* ── STARTUP LOADER ── */
-#globalLoader {
-  position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  transition: opacity 0.6s ease;
-}
-#globalLoader i { font-size: 3.5rem; color: var(--primary); margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--primary-glow)); }
-#globalLoader h2 { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: 1px; }
-#globalLoader p { font-size: 0.9rem; color: var(--text-sub); margin-top: 10px; }
 
 /* ═══════════ HEADER ═══════════ */
 #hdr {
@@ -745,13 +737,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 </head>
 <body>
 
-<!-- ── STARTUP LOADER ── -->
-<div id="globalLoader">
-  <i class="fa-solid fa-circle-notch fa-spin"></i>
-  <h2>Joining Meeting...</h2>
-  <p>Connecting securely...</p>
-</div>
-
 <div class="bg-canvas">
   <div class="bg-orb bg-orb-1"></div>
   <div class="bg-orb bg-orb-2"></div>
@@ -1044,6 +1029,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 
 /* ═══════════════════════════════════════════════════════
    NEXUS MEET PRO — ULTRA CORE ENGINE
+   Handles: WebRTC Mesh, Adaptive Bitrate, 50+ Auto-scaling
    ═══════════════════════════════════════════════════════ */
 
 let ME = /*[[${username}]]*/ "Guest";
@@ -1053,7 +1039,7 @@ if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || Str
 
 // SAFE ROOM ID PARSING
 let rawId = new URLSearchParams(location.search).get('id');
-const ROOM = rawId ? rawId.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : 'nexus-default';
+const ROOM = rawId ? rawId.trim() : 'nexus-default';
 
 let stream, screenStream, origVT;
 let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
@@ -1107,19 +1093,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
-
-  setTimeout(() => {
-      removeLoader();
-      if(!joined && wsOk) {
-          streamOk = true; 
-          tryJoin(); 
-      }
-  }, 5000);
+  
+  // Directly start the media and connection
+  startApp();
 });
+
+// ── BOOT SEQUENCE ──
+async function startApp() {
+    toast("Starting secure connection...", "fa-solid fa-shield-halved", "var(--primary)");
+    await initMedia(); 
+    connectWebSocket(); 
+}
 
 // ── WEBSOCKET ──
 const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/signal';
-let ws;
 
 function safeSend(msgObj) {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msgObj));
@@ -1128,7 +1115,14 @@ function safeSend(msgObj) {
 function connectWebSocket() {
     ws = new WebSocket(WS_URL);
 
-    ws.onopen = () => { wsOk = true; tryJoin(); };
+    ws.onopen = () => { 
+        wsOk = true; 
+        joined = true;
+        safeSend({ type: 'join', roomId: ROOM, senderName: ME });
+        updateCount();
+        toast(`Joined room successfully!`, "fa-solid fa-check", "var(--success)");
+    };
+    
     ws.onerror = () => toast("Connection error — retrying…", "fa-solid fa-triangle-exclamation", "var(--danger)");
     ws.onclose = () => {
       wsOk = false; joined = false;
@@ -1223,7 +1217,10 @@ function connectWebSocket() {
         case 'leave':
           if (!sid) return;
           const name = pNames[sid] || 'Participant';
+          
+          // WEBSOCKET IS THE ONLY WAY TO REMOVE A PEER NOW
           removePeer(sid);
+          
           toast(`${name} left`, "fa-solid fa-user-minus", "var(--danger)");
           if (joinSounds) playTone(440, 0.06, 0.15);
           updateCount(); refreshParts(); optimizeForScaleDebounced();
@@ -1250,14 +1247,6 @@ function showReconnectOverlay() {
     }
 }
 
-function removeLoader() {
-    const loader = document.getElementById('globalLoader');
-    if(loader && loader.style.opacity !== '0') { 
-        loader.style.opacity = '0'; 
-        setTimeout(() => loader.remove(), 600); 
-    }
-}
-
 // ── MEDIA INIT ──
 async function initMedia() {
   try {
@@ -1275,12 +1264,6 @@ async function initMedia() {
     
     streamOk = true; 
     document.getElementById('localNoCam').classList.remove('show');
-    
-    if(joined) {
-        for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); }
-    } else {
-        tryJoin(); 
-    }
     setupLocalViz();
     
   } catch (err) {
@@ -1291,39 +1274,20 @@ async function initMedia() {
       if (lv) { lv.srcObject = stream; lv.play().catch(e=>{}); }
       streamOk = true; 
       document.getElementById('localNoCam').classList.remove('show');
-      if(joined) { for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); } } 
-      else { tryJoin(); }
       setupLocalViz();
     } catch (e2) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
           streamOk = true; camOff = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
-          if(joined) { for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); } } 
-          else { tryJoin(); }
           setupLocalViz();
           toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
         } catch(e3) {
           streamOk = true; camOff = true; micMuted = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
-          tryJoin();
-          removeLoader();
           toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
         }
     }
-  }
-}
-
-function tryJoin() {
-  if (wsOk && streamOk && !joined) {
-    joined = true;
-    safeSend({ type: 'join', roomId: ROOM, senderName: ME });
-    updateCount();
-    toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
-    
-    removeLoader();
-    const overlay = document.getElementById('reconnectOverlay');
-    if(overlay) overlay.remove();
   }
 }
 
@@ -1477,19 +1441,25 @@ function createPC(pid, initiator) {
   // 🔴 THE ULTIMATE FIX FOR BLACK SCREEN (TRACK MERGING) 🔴
   pc.ontrack = e => {
     let tile = document.getElementById(`t-${pid}`);
-    let vid = tile ? tile.querySelector('video') : null;
     
-    if (vid && vid.srcObject) {
-        // If a stream exists (e.g. audio arrived first), append the new track (e.g. video) to it
+    // Add tile with blank stream if it doesn't exist yet
+    if (!tile) {
+        addTile(pid, new MediaStream());
+        tile = document.getElementById(`t-${pid}`);
+    }
+    
+    let vid = tile.querySelector('video');
+    if (vid) {
+        // Guarantee srcObject exists, then strictly add the new track
+        if (!vid.srcObject) vid.srcObject = new MediaStream();
         vid.srcObject.addTrack(e.track);
-    } else {
-        // First track arriving, create tile and add a fresh stream
-        addTile(pid, new MediaStream([e.track]));
+        vid.play().catch(err => console.warn("Auto-play prevented", err));
     }
     
     if(e.track.kind === 'audio') {
-        setupRemoteViz(pid, new MediaStream([e.track]));
+        setupRemoteViz(pid, vid.srcObject);
     }
+    
     updateCount(); refreshParts();
   };
 
@@ -1499,10 +1469,8 @@ function createPC(pid, initiator) {
     if (sig) sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' || state === 'disconnected' ? 'sig-fair' : 'sig-poor');
 
     // 🔴 THE ULTIMATE FIX FOR MOBILE DISCONNECTIONS 🔴
-    // Only remove peer if absolutely failed. Mobile switches connection states often.
-    if (state === 'failed' || state === 'closed') {
-      removePeer(pid); updateCount(); refreshParts(); optimizeForScaleDebounced();
-    }
+    // We DO NOT call removePeer() here anymore! We only trust the WebSocket 'leave' event to kick someone out.
+    // If connection drops, video pauses, but the tile remains until they actually leave or close app.
   };
 
   if (initiator) {
@@ -2090,6 +2058,7 @@ function endCall() {
 }
 
 // ── BOOT TRIGGER ──
+// Nuke loading variables & just connect immediately
 connectWebSocket();
 initMedia();
 
