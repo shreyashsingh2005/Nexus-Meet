@@ -43,8 +43,6 @@
   --shadow-sm: 0 4px 12px rgba(0,0,0,0.3);
   --shadow-md: 0 8px 30px rgba(0,0,0,0.5);
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
-  --shadow-glow-blue: 0 0 40px rgba(59,130,246,0.15);
-  --shadow-glow-purple: 0 0 40px rgba(139,92,246,0.1);
   --transition-fast: 0.15s ease;
   --transition-med: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -712,7 +710,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   #stage { padding: 70px 6px 140px 6px; gap: 6px; }
   #stage.panel-open { padding-right: 6px; }
   
-  #cbar { bottom: 10px; padding: 8px; gap: 6px; border-radius: 24px; flex-wrap: wrap; max-width: 95vw; }
+  #cbar { 
+    bottom: 10px; padding: 8px; gap: 6px; border-radius: 24px; 
+    flex-wrap: wrap; max-width: 95vw; 
+  }
   .cb { width: 40px; height: 40px; }
   .cb .ic { font-size: 1rem; }
   .cb.end { width: auto; padding: 0 16px; border-radius: 20px; height: 40px; }
@@ -1043,7 +1044,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 
 /* ═══════════════════════════════════════════════════════
    NEXUS MEET PRO — ULTRA CORE ENGINE
-   Handles: WebRTC Mesh, Adaptive Bitrate, 50+ Auto-scaling
    ═══════════════════════════════════════════════════════ */
 
 let ME = /*[[${username}]]*/ "Guest";
@@ -1051,7 +1051,7 @@ if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || Str
   ME = "Guest_" + Math.floor(Math.random() * 9000 + 1000);
 }
 
-// FIX: Safe Room ID Parsing (Lowercase, dashes for spaces, remove special chars)
+// SAFE ROOM ID PARSING
 let rawId = new URLSearchParams(location.search).get('id');
 const ROOM = rawId ? rawId.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : 'nexus-default';
 
@@ -1068,13 +1068,11 @@ let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// STUN Servers
+// ── FIXED ICE SERVERS FOR MOBILE NAT ──
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
     { urls: 'stun:stun.services.mozilla.com' }
   ],
   sdpSemantics: 'unified-plan',
@@ -1110,9 +1108,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
 
-  // FAILSAFE: Always clear loader
   setTimeout(() => {
       removeLoader();
+      if(!joined && wsOk) {
+          streamOk = true; 
+          tryJoin(); 
+      }
   }, 5000);
 });
 
@@ -1208,9 +1209,15 @@ function connectWebSocket() {
           return;
 
         case 'candidate':
-          if (!sid || !d.candidate) return;
-          if (!peers[sid]?.remoteDescription?.type) { (queues[sid] = queues[sid] || []).push(d.candidate); }
-          else { try { await peers[sid].addIceCandidate(new RTCIceCandidate(d.candidate)); } catch(e) {} }
+          if (sid && peers[sid] && d.candidate) {
+              const rtcCand = new RTCIceCandidate(d.candidate);
+              if (peers[sid].remoteDescription && peers[sid].remoteDescription.type) {
+                  peers[sid].addIceCandidate(rtcCand).catch(e => console.error("ICE error", e));
+              } else {
+                  queues[sid] = queues[sid] || [];
+                  queues[sid].push(rtcCand);
+              }
+          }
           return;
 
         case 'leave':
@@ -1320,7 +1327,7 @@ function tryJoin() {
   }
 }
 
-// ── LOCAL AUDIO VISUALIZATION ──
+// ── LOCAL AUDIO VISUALIZATION (Disabled for Mobile to save CPU) ──
 function setupLocalViz() {
   if(!stream || !stream.getAudioTracks().length || isMobileDevice) return; 
 
@@ -1467,21 +1474,35 @@ function createPC(pid, initiator) {
     }
   };
 
-  // FIX: WebRTC Race Condition Solved! Check and append stream correctly.
+  // 🔴 THE ULTIMATE FIX FOR BLACK SCREEN (TRACK MERGING) 🔴
   pc.ontrack = e => {
-    const remoteStream = e.streams && e.streams.length > 0 ? e.streams[0] : new MediaStream([e.track]);
-    addTile(pid, remoteStream);
-    setupRemoteViz(pid, remoteStream);
+    let tile = document.getElementById(`t-${pid}`);
+    let vid = tile ? tile.querySelector('video') : null;
+    
+    if (vid && vid.srcObject) {
+        // If a stream exists (e.g. audio arrived first), append the new track (e.g. video) to it
+        vid.srcObject.addTrack(e.track);
+    } else {
+        // First track arriving, create tile and add a fresh stream
+        addTile(pid, new MediaStream([e.track]));
+    }
+    
+    if(e.track.kind === 'audio') {
+        setupRemoteViz(pid, new MediaStream([e.track]));
+    }
     updateCount(); refreshParts();
   };
 
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
-    if (state === 'disconnected' || state === 'failed') {
+    const sig = document.querySelector(`#t-${pid} .sig-bars`);
+    if (sig) sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' || state === 'disconnected' ? 'sig-fair' : 'sig-poor');
+
+    // 🔴 THE ULTIMATE FIX FOR MOBILE DISCONNECTIONS 🔴
+    // Only remove peer if absolutely failed. Mobile switches connection states often.
+    if (state === 'failed' || state === 'closed') {
       removePeer(pid); updateCount(); refreshParts(); optimizeForScaleDebounced();
     }
-    const sig = document.querySelector(`#t-${pid} .sig-bars`);
-    if (sig) sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' ? 'sig-fair' : 'sig-poor');
   };
 
   if (initiator) {
@@ -1497,27 +1518,17 @@ function createPC(pid, initiator) {
 
 async function flushQ(pid) {
   if (queues[pid] && peers[pid]) {
-    while (queues[pid].length) {
-      try { await peers[pid].addIceCandidate(new RTCIceCandidate(queues[pid].shift())); } catch (e) {}
+    while (queues[pid].length > 0) {
+      try { await peers[pid].addIceCandidate(queues[pid].shift()); } catch (e) {}
     }
   }
 }
 
-// ── TILE MANAGEMENT (RACE CONDITION FIX) ──
+// ── TILE MANAGEMENT ──
 function addTile(pid, s) {
-  let tile = document.getElementById(`t-${pid}`);
-  
-  // FIX: If Audio track arrived first and made the tile, update it when Video track arrives!
-  if (tile) {
-      const vid = tile.querySelector('video');
-      if (vid && s) vid.srcObject = s;
-      return;
-  }
-
+  if (document.getElementById(`t-${pid}`)) return;
   const stage = document.getElementById('stage');
-  tile = document.createElement('div'); 
-  tile.className = 'tile'; 
-  tile.id = `t-${pid}`;
+  const tile = document.createElement('div'); tile.className = 'tile'; tile.id = `t-${pid}`;
 
   const vid = document.createElement('video');
   vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
@@ -2078,7 +2089,7 @@ function endCall() {
   }, 50);
 }
 
-// ── BOOT TRIGGER: CONNECT SERVER AND MEDIA AT ONCE ──
+// ── BOOT TRIGGER ──
 connectWebSocket();
 initMedia();
 
