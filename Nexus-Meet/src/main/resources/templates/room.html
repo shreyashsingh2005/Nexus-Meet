@@ -686,7 +686,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .typing-indicator {
     font-size: 0.75rem; color: var(--primary); font-weight: 500;
     padding: 6px 12px; align-items: center; gap: 8px; animation: fadeIn 0.3s ease;
-    display: none; /* Controlled by JS */
+    display: none; 
 }
 .typing-indicator.show { display: flex; }
 .typing-dots { display: flex; gap: 3px; align-items: center; }
@@ -695,19 +695,24 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
 
-/* ═══════════ RESPONSIVE (UPDATED FOR MOBILE FIXES) ═══════════ */
+/* ═══════════ RESPONSIVE (BULLETPROOF MOBILE FIXES) ═══════════ */
 @media(max-width: 768px) {
+  /* KILL HEAVY ANIMATIONS TO SAVE CPU AND STOP LAG */
+  .bg-canvas, .bg-orb, .bg-noise, .ambient-glow-1, .ambient-glow-2 { 
+      display: none !important; 
+      animation: none !important; 
+  }
+  body { background: var(--bg-dark); }
+
   #hdr { padding: 0 10px; height: 60px; }
   .logo-name { display: none; }
   .vtog { display: none; }
   .net-badge span { display: none; }
   .e2ee-badge span { display: none; }
   
-  /* Stage adjustments */
   #stage { padding: 70px 6px 140px 6px; gap: 6px; }
   #stage.panel-open { padding-right: 6px; }
   
-  /* Control bar wrapping and scaling */
   #cbar { 
     bottom: 10px; padding: 8px; gap: 6px; border-radius: 24px; 
     flex-wrap: wrap; max-width: 95vw; 
@@ -726,7 +731,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   .av-ring { width: 56px; height: 56px; font-size: 1.4rem; }
   .tlbl { font-size: 0.7rem; padding: 4px 10px; }
   
-  /* Stack grid for mobile up to 4 users */
   #stage.n2 .tile { width: 100%; max-height: 40vh; }
   #stage.n3 .tile, #stage.n4 .tile { width: 100%; max-height: 30vh; }
   #stage.n5 .tile, #stage.n6 .tile, #stage.n9 .tile { width: calc(50% - 6px); max-height: 30vh; }
@@ -748,7 +752,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 <div id="globalLoader">
   <i class="fa-solid fa-circle-notch fa-spin"></i>
   <h2>Joining Meeting...</h2>
-  <p>Initializing secure connection</p>
+  <p>Connecting securely...</p>
 </div>
 
 <div class="bg-canvas">
@@ -1046,15 +1050,15 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
    Handles: WebRTC Mesh, Adaptive Bitrate, 50+ Auto-scaling
    ═══════════════════════════════════════════════════════ */
 
-// ── IDENTITY ──
 let ME = /*[[${username}]]*/ "Guest";
 if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || String(ME).includes("${")) {
   ME = "Guest_" + Math.floor(Math.random() * 9000 + 1000);
 }
 
-const ROOM = new URLSearchParams(location.search).get('id') || 'nexus-default';
+// FIX: Sanitize the Room ID so extra spaces don't break joining
+let rawId = new URLSearchParams(location.search).get('id');
+const ROOM = rawId ? rawId.trim().replace(/\s+/g, '-') : 'nexus-default';
 
-// ── STATE ──
 let stream, screenStream, origVT;
 let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
 let wsOk = false, streamOk = false, joined = false;
@@ -1068,7 +1072,6 @@ let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// STUN Servers
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -1082,7 +1085,6 @@ const ICE = {
   rtcpMuxPolicy: 'require'
 };
 
-// ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('localTlblName').textContent = 'You';
   document.getElementById('localInit').textContent = ME.charAt(0).toUpperCase();
@@ -1091,7 +1093,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('infoLink').childNodes[0].textContent = location.href.substring(0, 40) + '… ';
   document.getElementById('infoName').textContent = ME;
 
-  // Timer
   setInterval(() => {
     const e = Math.floor((Date.now() - meetStart) / 1000);
     const pad = n => String(n).padStart(2, '0');
@@ -1111,16 +1112,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
-
-  // FAILSAFE: Remove loader after 8 seconds no matter what happens
+  
+  // FIX: Unblock Loader automatically if stuck (Failsafe)
   setTimeout(() => {
-    const loader = document.getElementById('globalLoader');
-    if(loader) {
-        loader.style.opacity = '0';
-        setTimeout(() => loader.remove(), 600);
-        if(!joined) toast("Connection is taking longer than usual...", "fa-solid fa-clock", "var(--warning)");
-    }
-  }, 8000);
+      removeLoader();
+  }, 5000);
 });
 
 // ── WEBSOCKET ──
@@ -1249,18 +1245,27 @@ function showReconnectOverlay() {
     }
 }
 
-// ── MEDIA INIT (Fully Unblocked for Mobile) ──
+function removeLoader() {
+    const loader = document.getElementById('globalLoader');
+    if(loader && loader.style.opacity !== '0') { 
+        loader.style.opacity = '0'; 
+        setTimeout(() => loader.remove(), 600); 
+    }
+}
+
+// ── MEDIA INIT (Fully Fixed for Mobile) ──
 async function initMedia() {
   try {
-    const mobileConstraints = { video: { facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: noiseSuppression } };
-    const desktopConstraints = { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: noiseSuppression, autoGainControl: true } };
+    // FIX: Using standardized constraints that won't fail on restrictive mobile browsers
+    const constraints = isMobileDevice 
+        ? { video: { width: { max: 480 }, frameRate: { max: 15 }, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } }
+        : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
-    stream = await navigator.mediaDevices.getUserMedia(isMobileDevice ? mobileConstraints : desktopConstraints);
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
     
     const lv = document.getElementById('lv');
     if (lv) {
         lv.srcObject = stream;
-        // Play immediately without waiting to bypass mobile block
         lv.play().catch(e => console.log("Video Play Error:", e)); 
     }
     
@@ -1276,21 +1281,34 @@ async function initMedia() {
     
   } catch (err) {
     console.error("Camera Error:", err);
-    toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
+    // Ultimate Fallback - Just try generic video/audio without specific modes
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-      streamOk = true; camOff = true; syncCamUI();
-      document.getElementById('localNoCam').classList.add('show');
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const lv = document.getElementById('lv');
+      if (lv) { lv.srcObject = stream; lv.play().catch(e=>{}); }
+      streamOk = true; 
+      document.getElementById('localNoCam').classList.remove('show');
       if(joined) { for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); } } 
       else { tryJoin(); }
       setupLocalViz();
-    } catch (e) { 
-        streamOk = true; camOff = true; micMuted = true; syncCamUI();
-        document.getElementById('localNoCam').classList.add('show');
-        tryJoin();
-        const loader = document.getElementById('globalLoader');
-        if(loader) loader.remove();
-        toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
+    } catch (e2) {
+        // Audio Only Fallback
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          streamOk = true; camOff = true; syncCamUI();
+          document.getElementById('localNoCam').classList.add('show');
+          if(joined) { for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); } } 
+          else { tryJoin(); }
+          setupLocalViz();
+          toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
+        } catch(e3) {
+          // Ghost Mode
+          streamOk = true; camOff = true; micMuted = true; syncCamUI();
+          document.getElementById('localNoCam').classList.add('show');
+          tryJoin();
+          removeLoader();
+          toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
+        }
     }
   }
 }
@@ -1302,18 +1320,15 @@ function tryJoin() {
     updateCount();
     toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
     
-    // Unblock Loader Instantly
-    const loader = document.getElementById('globalLoader');
-    if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 600); }
+    removeLoader();
     const overlay = document.getElementById('reconnectOverlay');
     if(overlay) overlay.remove();
   }
 }
 
-// ── LOCAL AUDIO VISUALIZATION (CPU KILLED FOR MOBILE) ──
+// ── LOCAL AUDIO VISUALIZATION (Disabled for Mobile to save CPU) ──
 function setupLocalViz() {
-  if(!stream || !stream.getAudioTracks().length) return;
-  if(isMobileDevice) return; // FIX: Prevent mobile overheating completely
+  if(!stream || !stream.getAudioTracks().length || isMobileDevice) return; 
 
   try {
     aCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1339,7 +1354,7 @@ function setupLocalViz() {
 }
 
 function setupRemoteViz(pid, s) {
-  if(isMobileDevice) return; // FIX: Prevent mobile overheating completely
+  if(isMobileDevice) return; 
 
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1366,7 +1381,7 @@ function setupRemoteViz(pid, s) {
   } catch (e) {}
 }
 
-// ── 50+ USER ADAPTIVE BITRATE OPTIMIZER ──
+// ── 50+ USER ADAPTIVE BITRATE OPTIMIZER (Mobile Saved) ──
 function optimizeForScaleDebounced() {
     clearTimeout(optimizeTimeout);
     optimizeTimeout = setTimeout(optimizeForScale, 1500);
@@ -1374,13 +1389,14 @@ function optimizeForScaleDebounced() {
 
 function optimizeForScale() {
   const peerCount = Object.keys(peers).length;
-  let scaleDown = 1, maxBitrate = isMobileDevice ? 300000 : 600000, maxFps = isMobileDevice ? 24 : 30;
+  // FIX: Hard limits on mobile to prevent staggering CPU overload
+  let scaleDown = 1, maxBitrate = isMobileDevice ? 150000 : 600000, maxFps = isMobileDevice ? 15 : 30;
 
   if (peerCount > 40) { scaleDown = 4; maxBitrate = 40000; maxFps = 10; } 
   else if (peerCount > 25) { scaleDown = 3; maxBitrate = 60000; maxFps = 12; } 
   else if (peerCount > 15) { scaleDown = 2; maxBitrate = 100000; maxFps = 15; } 
-  else if (peerCount > 8) { scaleDown = 1.5; maxBitrate = 200000; maxFps = 20; } 
-  else if (peerCount > 4) { scaleDown = 1; maxBitrate = 300000; maxFps = 24; }
+  else if (peerCount > 8) { scaleDown = 1.5; maxBitrate = isMobileDevice ? 150000 : 200000; maxFps = 15; } 
+  else if (peerCount > 4) { scaleDown = 1; maxBitrate = isMobileDevice ? 150000 : 300000; maxFps = isMobileDevice ? 15 : 24; }
 
   for (const pid in peers) {
     const senders = peers[pid].getSenders();
@@ -1500,7 +1516,7 @@ function addTile(pid, s) {
 
   const vid = document.createElement('video');
   vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
-  vid.setAttribute('playsinline', 'playsinline'); // Critical fix for iOS Safari
+  vid.setAttribute('playsinline', 'playsinline'); 
 
   const name = pNames[pid] || 'Participant';
   const lbl = document.createElement('div'); lbl.className = 'tlbl';
@@ -1743,7 +1759,9 @@ async function toggleCam() {
   
   if (!track) {
       try {
-          const constraints = isMobileDevice ? { video: { facingMode: "user" } } : { video: true };
+          const constraints = isMobileDevice 
+            ? { video: { width: { max: 480 }, frameRate: { max: 15 }, facingMode: "user" } } 
+            : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
           stream.addTrack(newTrack);
@@ -2010,7 +2028,7 @@ function toast(msg, ico = "fa-solid fa-circle-info", clr = "var(--primary)") {
 }
 
 function playTone(freq, dur, vol) {
-  if (!joinSounds || isMobileDevice) return; // Save resources on mobile
+  if (!joinSounds || isMobileDevice) return; 
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -2029,10 +2047,8 @@ function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').
 function onBU(e) { e.preventDefault(); e.returnValue = ''; }
 window.addEventListener('beforeunload', onBU);
 
-// Add listener to prevent background dropping on mobile
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && isMobileDevice) {
-        // Just keeping the connection alive without doing heavy lifting
         if(wsOk) safeSend({ type: 'ping' });
     }
 });
