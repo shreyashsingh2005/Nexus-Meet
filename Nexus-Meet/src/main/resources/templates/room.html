@@ -748,7 +748,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 <div id="globalLoader">
   <i class="fa-solid fa-circle-notch fa-spin"></i>
   <h2>Joining Meeting...</h2>
-  <p>Initializing camera and secure connection</p>
+  <p>Initializing secure connection</p>
 </div>
 
 <div class="bg-canvas">
@@ -1068,7 +1068,7 @@ let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// STUN Servers (Added extra for mobile network reliability)
+// STUN Servers
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -1111,6 +1111,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
+
+  // FAILSAFE: Remove loader after 8 seconds no matter what happens
+  setTimeout(() => {
+    const loader = document.getElementById('globalLoader');
+    if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 600);
+        if(!joined) toast("Connection is taking longer than usual...", "fa-solid fa-clock", "var(--warning)");
+    }
+  }, 8000);
 });
 
 // ── WEBSOCKET ──
@@ -1239,32 +1249,31 @@ function showReconnectOverlay() {
     }
 }
 
-// ── MEDIA INIT (Optimized for Mobile) ──
+// ── MEDIA INIT (Fully Unblocked for Mobile) ──
 async function initMedia() {
   try {
-    const constraints = {
-      video: isMobileDevice ? { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: "user" } 
-             : { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } },
-      audio: { echoCancellation: true, noiseSuppression: noiseSuppression, autoGainControl: true }
-    };
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const mobileConstraints = { video: { facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: noiseSuppression } };
+    const desktopConstraints = { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: noiseSuppression, autoGainControl: true } };
+    
+    stream = await navigator.mediaDevices.getUserMedia(isMobileDevice ? mobileConstraints : desktopConstraints);
     
     const lv = document.getElementById('lv');
     if (lv) {
         lv.srcObject = stream;
-        // Wait for video to properly load before showing it and joining (Fixes black screen)
-        lv.onloadedmetadata = () => {
-            lv.play().catch(e => console.log("Video Play Error:", e)); 
-            streamOk = true; 
-            document.getElementById('localNoCam').classList.remove('show');
-            if(joined) {
-                for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); }
-            } else {
-                tryJoin(); 
-            }
-            setupLocalViz();
-        };
+        // Play immediately without waiting to bypass mobile block
+        lv.play().catch(e => console.log("Video Play Error:", e)); 
     }
+    
+    streamOk = true; 
+    document.getElementById('localNoCam').classList.remove('show');
+    
+    if(joined) {
+        for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); }
+    } else {
+        tryJoin(); 
+    }
+    setupLocalViz();
+    
   } catch (err) {
     console.error("Camera Error:", err);
     toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
@@ -1293,6 +1302,7 @@ function tryJoin() {
     updateCount();
     toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
     
+    // Unblock Loader Instantly
     const loader = document.getElementById('globalLoader');
     if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 600); }
     const overlay = document.getElementById('reconnectOverlay');
