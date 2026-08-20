@@ -1063,16 +1063,19 @@ let viewMode = 'g', pinnedId = null, activePanel = null;
 let meetStart = Date.now(), aCtx, localAn;
 let noiseSuppression = true, mirrorSelf = true, hdMode = false, showStats = false, joinSounds = true, autoHide = false;
 let autoHideTimer = null;
-let lastMsgSender = null; // Track sender for smart chat grouping
+let lastMsgSender = null; 
 let typingTimeoutSend = null;
 let optimizeTimeout = null;
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// STUN Servers (Added extra for mobile network reliability)
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' }
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun.services.mozilla.com' }
   ],
   sdpSemantics: 'unified-plan',
   bundlePolicy: 'max-bundle',
@@ -1097,12 +1100,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('infoDuration').textContent = t;
   }, 1000);
 
-  // Stats collector
   setInterval(collectStats, 3000);
-
   refreshParts();
   
-  // Real-time typing notification with debouncing (Fixing WS Spam)
   document.getElementById('chatIn').addEventListener('input', () => {
       if(wsOk && joined && !typingTimeoutSend) {
           safeSend({ type: 'typing', roomId: ROOM, senderName: ME });
@@ -1110,10 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 
-  // Stay alive ping
-  setInterval(() => {
-     if (wsOk) safeSend({ type: 'ping' });
-  }, 15000);
+  setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
 });
 
 // ── WEBSOCKET ──
@@ -1121,9 +1118,7 @@ const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.
 let ws;
 
 function safeSend(msgObj) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(msgObj));
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msgObj));
 }
 
 function connectWebSocket() {
@@ -1135,7 +1130,6 @@ function connectWebSocket() {
       wsOk = false; joined = false;
       toast("Disconnected from server", "fa-solid fa-plug-circle-xmark", "var(--danger)");
       
-      // Clean old peer states before reconnecting
       for (let pid in peers) {
          peers[pid].close();
          delete peers[pid];
@@ -1187,7 +1181,6 @@ function connectWebSocket() {
 
         case 'join':
           if (!sid) return;
-          // Staggered peer creation to avoid flooding
           setTimeout(() => {
             createPC(sid, true);
             toast(`${d.senderName || 'Participant'} joined`, "fa-solid fa-user-plus", "var(--success)");
@@ -1235,9 +1228,6 @@ function connectWebSocket() {
     };
 }
 
-// Initial connection
-connectWebSocket();
-
 function showReconnectOverlay() {
     let overlay = document.getElementById('reconnectOverlay');
     if(!overlay) {
@@ -1249,62 +1239,48 @@ function showReconnectOverlay() {
     }
 }
 
-// ── MEDIA INIT (Asynchronous Fix) ──
+// ── MEDIA INIT (Optimized for Mobile) ──
 async function initMedia() {
   try {
     const constraints = {
-      video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } },
+      video: isMobileDevice ? { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: "user" } 
+             : { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } },
       audio: { echoCancellation: true, noiseSuppression: noiseSuppression, autoGainControl: true }
     };
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     
-    // Attach stream to local video element and FORCE play
     const lv = document.getElementById('lv');
     if (lv) {
         lv.srcObject = stream;
-        lv.play().catch(e => console.log("Video Play Error:", e)); 
+        // Wait for video to properly load before showing it and joining (Fixes black screen)
+        lv.onloadedmetadata = () => {
+            lv.play().catch(e => console.log("Video Play Error:", e)); 
+            streamOk = true; 
+            document.getElementById('localNoCam').classList.remove('show');
+            if(joined) {
+                for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); }
+            } else {
+                tryJoin(); 
+            }
+            setupLocalViz();
+        };
     }
-    
-    streamOk = true; 
-    document.getElementById('localNoCam').classList.remove('show');
-    
-    // Inject tracks if already joined
-    if(joined) {
-        for(const pid in peers) {
-            stream.getTracks().forEach(t => {
-                if (peers[pid]) peers[pid].addTrack(t, stream); 
-            });
-        }
-    } else {
-        tryJoin(); 
-    }
-    setupLocalViz();
   } catch (err) {
     console.error("Camera Error:", err);
     toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
     try {
-      // Fallback to Audio Only
       stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
       streamOk = true; camOff = true; syncCamUI();
       document.getElementById('localNoCam').classList.add('show');
-      if(joined) {
-         for(const pid in peers) { 
-             stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); 
-         }
-      } else {
-         tryJoin(); 
-      }
+      if(joined) { for(const pid in peers) { stream.getTracks().forEach(t => { if (peers[pid]) peers[pid].addTrack(t, stream); }); } } 
+      else { tryJoin(); }
       setupLocalViz();
     } catch (e) { 
-        // Ghost Join if NO media available
         streamOk = true; camOff = true; micMuted = true; syncCamUI();
         document.getElementById('localNoCam').classList.add('show');
         tryJoin();
-        
-        // Hide global loader even on failure
         const loader = document.getElementById('globalLoader');
         if(loader) loader.remove();
-        
         toast("No media devices found", "fa-solid fa-circle-exclamation", "var(--danger)"); 
     }
   }
@@ -1317,21 +1293,18 @@ function tryJoin() {
     updateCount();
     toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
     
-    // HIDE STARTUP LOADER SMOOTHLY
     const loader = document.getElementById('globalLoader');
-    if(loader) {
-        loader.style.opacity = '0';
-        setTimeout(() => loader.remove(), 600);
-    }
-
+    if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 600); }
     const overlay = document.getElementById('reconnectOverlay');
     if(overlay) overlay.remove();
   }
 }
 
-// ── LOCAL AUDIO VISUALIZATION (CPU OPTIMIZED) ──
+// ── LOCAL AUDIO VISUALIZATION (CPU KILLED FOR MOBILE) ──
 function setupLocalViz() {
   if(!stream || !stream.getAudioTracks().length) return;
+  if(isMobileDevice) return; // FIX: Prevent mobile overheating completely
+
   try {
     aCtx = new (window.AudioContext || window.webkitAudioContext)();
     const src = aCtx.createMediaStreamSource(stream);
@@ -1344,10 +1317,8 @@ function setupLocalViz() {
     let lastTime = 0;
     (function loop(time) {
       requestAnimationFrame(loop);
-      // Throttle to roughly ~10-15 FPS to save CPU
       if (time - lastTime < 60) return;
       lastTime = time;
-
       localAn.getByteFrequencyData(buf);
       const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
       const isSpeaking = avg > 18 && !micMuted;
@@ -1358,6 +1329,8 @@ function setupLocalViz() {
 }
 
 function setupRemoteViz(pid, s) {
+  if(isMobileDevice) return; // FIX: Prevent mobile overheating completely
+
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const src = ctx.createMediaStreamSource(s);
@@ -1371,7 +1344,6 @@ function setupRemoteViz(pid, s) {
       if (!tile) { ctx.close(); delete pAudio[pid]; return; }
       
       requestAnimationFrame(loop);
-      // Throttle CPU load for remote videos
       if (time - lastTime < 60) return;
       lastTime = time;
 
@@ -1384,7 +1356,7 @@ function setupRemoteViz(pid, s) {
   } catch (e) {}
 }
 
-// ── 50+ USER ADAPTIVE BITRATE OPTIMIZER (Throttled) ──
+// ── 50+ USER ADAPTIVE BITRATE OPTIMIZER ──
 function optimizeForScaleDebounced() {
     clearTimeout(optimizeTimeout);
     optimizeTimeout = setTimeout(optimizeForScale, 1500);
@@ -1392,19 +1364,13 @@ function optimizeForScaleDebounced() {
 
 function optimizeForScale() {
   const peerCount = Object.keys(peers).length;
-  let scaleDown = 1, maxBitrate = 600000, maxFps = 30;
+  let scaleDown = 1, maxBitrate = isMobileDevice ? 300000 : 600000, maxFps = isMobileDevice ? 24 : 30;
 
-  if (peerCount > 40) {
-    scaleDown = 4; maxBitrate = 40000; maxFps = 10;
-  } else if (peerCount > 25) {
-    scaleDown = 3; maxBitrate = 60000; maxFps = 12;
-  } else if (peerCount > 15) {
-    scaleDown = 2; maxBitrate = 100000; maxFps = 15;
-  } else if (peerCount > 8) {
-    scaleDown = 1.5; maxBitrate = 200000; maxFps = 20;
-  } else if (peerCount > 4) {
-    scaleDown = 1; maxBitrate = 350000; maxFps = 24;
-  }
+  if (peerCount > 40) { scaleDown = 4; maxBitrate = 40000; maxFps = 10; } 
+  else if (peerCount > 25) { scaleDown = 3; maxBitrate = 60000; maxFps = 12; } 
+  else if (peerCount > 15) { scaleDown = 2; maxBitrate = 100000; maxFps = 15; } 
+  else if (peerCount > 8) { scaleDown = 1.5; maxBitrate = 200000; maxFps = 20; } 
+  else if (peerCount > 4) { scaleDown = 1; maxBitrate = 300000; maxFps = 24; }
 
   for (const pid in peers) {
     const senders = peers[pid].getSenders();
@@ -1426,15 +1392,10 @@ function optimizeForScale() {
     }
   }
 
-  // Update network quality badge based on peer count
   const badge = document.getElementById('netBadge');
-  if (peerCount > 30) {
-    badge.className = 'net-badge poor'; badge.querySelector('span').textContent = 'High Load';
-  } else if (peerCount > 15) {
-    badge.className = 'net-badge fair'; badge.querySelector('span').textContent = 'Moderate';
-  } else {
-    badge.className = 'net-badge good'; badge.querySelector('span').textContent = 'Excellent';
-  }
+  if (peerCount > 30) { badge.className = 'net-badge poor'; badge.querySelector('span').textContent = 'High Load'; } 
+  else if (peerCount > 15) { badge.className = 'net-badge fair'; badge.querySelector('span').textContent = 'Moderate'; } 
+  else { badge.className = 'net-badge good'; badge.querySelector('span').textContent = 'Excellent'; }
 }
 
 // ── STATS COLLECTOR ──
@@ -1459,9 +1420,7 @@ async function collectStats() {
           if (report.framesPerSecond) document.getElementById('statFps').textContent = Math.round(report.framesPerSecond) + ' fps';
         }
         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-          if (report.currentRoundTripTime) {
-            document.getElementById('statLatency').textContent = Math.round(report.currentRoundTripTime * 1000) + ' ms';
-          }
+          if (report.currentRoundTripTime) document.getElementById('statLatency').textContent = Math.round(report.currentRoundTripTime * 1000) + ' ms';
         }
         if (report.type === 'inbound-rtp' && report.kind === 'video') {
           if (report.packetsLost && report.packetsReceived) {
@@ -1470,7 +1429,7 @@ async function collectStats() {
           }
         }
       });
-      break; // Only check first peer for stats display
+      break; 
     } catch (e) {}
   }
 }
@@ -1501,9 +1460,7 @@ function createPC(pid, initiator) {
       removePeer(pid); updateCount(); refreshParts(); optimizeForScaleDebounced();
     }
     const sig = document.querySelector(`#t-${pid} .sig-bars`);
-    if (sig) {
-      sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' ? 'sig-fair' : 'sig-poor');
-    }
+    if (sig) sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' ? 'sig-fair' : 'sig-poor');
   };
 
   if (initiator) {
@@ -1533,6 +1490,7 @@ function addTile(pid, s) {
 
   const vid = document.createElement('video');
   vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
+  vid.setAttribute('playsinline', 'playsinline'); // Critical fix for iOS Safari
 
   const name = pNames[pid] || 'Participant';
   const lbl = document.createElement('div'); lbl.className = 'tlbl';
@@ -1548,11 +1506,11 @@ function addTile(pid, s) {
   sig.innerHTML = '<div class="b"></div><div class="b"></div><div class="b"></div>';
 
   const vol = document.createElement('div'); vol.className = 'vol-meter';
+  if(isMobileDevice) vol.style.display = 'none';
 
   tile.append(vid, lbl, hand, pin, sig, vol);
   stage.appendChild(tile);
 
-  // Animate in quickly
   tile.style.opacity = '0'; tile.style.transform = 'scale(0.9)';
   requestAnimationFrame(() => {
     tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease-out';
@@ -1572,7 +1530,7 @@ function removePeer(pid) {
   const t = document.getElementById(`t-${pid}`);
   if (t) {
     t.style.opacity = '0'; t.style.transform = 'scale(0.9)';
-    setTimeout(() => t.remove(), 250); // Faster removal
+    setTimeout(() => t.remove(), 250);
   }
   if (pinnedId === pid) pinnedId = null;
 }
@@ -1666,7 +1624,6 @@ function togglePanel(name) {
   const panels = { c: 'chatPanel', p: 'partsPanel', s: 'settingsPanel' };
   const stage = document.getElementById('stage');
 
-  // Close all
   Object.values(panels).forEach(id => document.getElementById(id).classList.remove('open'));
 
   if (activePanel === name) {
@@ -1687,7 +1644,7 @@ function togglePanel(name) {
   if (name === 'p') refreshParts();
 }
 
-// ── ADVANCED CHAT (Smart Grouping & Typing) ──
+// ── ADVANCED CHAT ──
 let typingTimer;
 function showTypingIndicator(name) {
     let indicator = document.getElementById('typingIndicator');
@@ -1702,7 +1659,6 @@ function showTypingIndicator(name) {
     }
     document.getElementById('typingName').textContent = `${esc(name)} is typing...`;
     
-    // Move indicator to bottom
     chatList.appendChild(indicator);
     indicator.classList.add('show');
     chatList.scrollTop = chatList.scrollHeight;
@@ -1716,7 +1672,6 @@ function sendChat() {
   appendMsg(ME, msg, true);
   safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg });
   el.value = '';
-  // Clear typing indicator for self
   const ind = document.getElementById('typingIndicator');
   if(ind) ind.classList.remove('show');
 }
@@ -1732,24 +1687,17 @@ function handleFileSelect(input) {
 
 function appendMsg(sender, text, isMe) {
   const c = document.getElementById('chatList');
-  
-  // Smart Grouping Logic
   let isGrouped = false;
   let classes = `cmsg ${isMe ? 'me' : ''}`;
   
-  // Find the last actual message group (ignoring typing indicator)
   const children = Array.from(c.children);
   let lastMsgGroup = null;
   for (let i = children.length - 1; i >= 0; i--) {
-      if (children[i].id !== 'typingIndicator') {
-          lastMsgGroup = children[i];
-          break;
-      }
+      if (children[i].id !== 'typingIndicator') { lastMsgGroup = children[i]; break; }
   }
   
   if (lastMsgSender === sender && lastMsgGroup && !lastMsgGroup.classList.contains('sys')) {
       isGrouped = true;
-      // Find the actual message bubble inside the group
       const prevMsg = lastMsgGroup.lastElementChild; 
       if(prevMsg && prevMsg.classList.contains('cmsg')) {
           prevMsg.classList.remove('grouped-btm');
@@ -1776,7 +1724,6 @@ function appendMsg(sender, text, isMe) {
       
       if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
   }
-  
   c.scrollTop = c.scrollHeight;
 }
 
@@ -1786,7 +1733,8 @@ async function toggleCam() {
   
   if (!track) {
       try {
-          const vidStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const constraints = isMobileDevice ? { video: { facingMode: "user" } } : { video: true };
+          const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
           stream.addTrack(newTrack);
           document.getElementById('lv').srcObject = stream;
@@ -1850,7 +1798,7 @@ async function toggleScreen() {
       svt.onended = stopScreen;
       toast('Presenting to everyone', "fa-solid fa-display", "var(--success)");
     } else stopScreen();
-  } catch (e) { /* user cancelled */ }
+  } catch (e) { }
 }
 function stopScreen() {
   const btn = document.getElementById('shareBtn');
@@ -1952,13 +1900,13 @@ function toggleHD() {
   hdMode = !hdMode;
   document.getElementById('hdSw').classList.toggle('on', hdMode);
   const track = stream?.getVideoTracks()[0];
-  if (track) {
+  if (track && !isMobileDevice) {
     track.applyConstraints({
       width: { ideal: hdMode ? 1280 : 640 },
       height: { ideal: hdMode ? 720 : 360 },
       frameRate: { ideal: hdMode ? 30 : 24 }
     }).catch(() => {});
-    toast(hdMode ? 'HD Video ON — uses more bandwidth' : 'Standard Video', "fa-solid fa-gauge-high", hdMode ? "var(--warning)" : "var(--primary)");
+    toast(hdMode ? 'HD Video ON' : 'Standard Video', "fa-solid fa-gauge-high", hdMode ? "var(--warning)" : "var(--primary)");
     optimizeForScaleDebounced();
   }
 }
@@ -2012,11 +1960,9 @@ function stopAutoHide() {
   document.getElementById('hdr').style.opacity = '1';
 }
 
-// ── MODALS ──
 function toggleSC() { document.getElementById('scOver').classList.toggle('show'); }
 function toggleInfo() { document.getElementById('infoOv').classList.toggle('show'); }
 
-// ── KEYBOARD SHORTCUTS ──
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   switch (e.key.toLowerCase()) {
@@ -2029,9 +1975,7 @@ document.addEventListener('keydown', e => {
     case 'e': toggleReact(); break;
     case 'p': togglePiP(); break;
     case 'd': toggleStats(); document.getElementById('statsSw').classList.toggle('on', showStats); break;
-    case 'f':
-      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {});
-      break;
+    case 'f': document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); break;
     case 'escape':
       document.getElementById('rpop').classList.remove('show');
       document.getElementById('scOver').classList.remove('show');
@@ -2041,13 +1985,11 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Close reaction popup on outside click
 document.addEventListener('click', e => {
   const popup = document.getElementById('rpop'), rb = document.getElementById('reactBtn');
   if (popup.classList.contains('show') && !rb.contains(e.target) && !popup.contains(e.target)) popup.classList.remove('show');
 });
 
-// ── TOAST SYSTEM ──
 function toast(msg, ico = "fa-solid fa-circle-info", clr = "var(--primary)") {
   const dock = document.getElementById('toasts');
   const el = document.createElement('div'); el.className = 'tst';
@@ -2057,9 +1999,8 @@ function toast(msg, ico = "fa-solid fa-circle-info", clr = "var(--primary)") {
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3500);
 }
 
-// ── AUDIO FEEDBACK ──
 function playTone(freq, dur, vol) {
-  if (!joinSounds) return;
+  if (!joinSounds || isMobileDevice) return; // Save resources on mobile
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -2073,15 +2014,20 @@ function playTone(freq, dur, vol) {
   } catch(e) {}
 }
 
-// ── UTILS ──
 function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-// ── CLEANUP (FIXED FOR INSTANT EXIT UX) ──
 function onBU(e) { e.preventDefault(); e.returnValue = ''; }
 window.addEventListener('beforeunload', onBU);
 
+// Add listener to prevent background dropping on mobile
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isMobileDevice) {
+        // Just keeping the connection alive without doing heavy lifting
+        if(wsOk) safeSend({ type: 'ping' });
+    }
+});
+
 function endCall() {
-  // Instant visual feedback for the user
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
         <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
@@ -2089,7 +2035,6 @@ function endCall() {
     </div>
   `;
 
-  // Process cleanup asynchronously to not block the redirect
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
     if (stream) stream.getTracks().forEach(t => t.stop());
@@ -2098,12 +2043,10 @@ function endCall() {
     for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
     if (ws && ws.readyState === WebSocket.OPEN) ws.close();
     
-    // Redirect instantly
     window.location.href = '/dashboard';
   }, 50);
 }
 
-// ── BOOT ──
 initMedia();
 
 /*]]>*/
