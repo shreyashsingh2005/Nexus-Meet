@@ -14,9 +14,9 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                // /signal (WebSocket endpoint), /dashboard, aur /room ko access dene ke liye matchers add kiye hain
-                .requestMatchers("/", "/index.html", "/dashboard", "/room", "/signal", "/css/**", "/images/**", "/js/**").permitAll() 
-                // Baaki sabhi requests ke liye authentication zaroori hogi
+                // Sirf main landing page aur static assets ko public rakha hai
+                .requestMatchers("/", "/index.html", "/css/**", "/images/**", "/js/**").permitAll() 
+                // Baaki sabhi requests (jaise /dashboard, /room, /signal) ke liye authentication strictly zaroori hogi
                 .anyRequest().authenticated() 
             )
             .oauth2Login(oauth2 -> oauth2
