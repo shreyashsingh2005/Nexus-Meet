@@ -1047,7 +1047,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 
 /* ═══════════════════════════════════════════════════════
    NEXUS MEET PRO — ULTRA CORE ENGINE
-   Handles: WebRTC Mesh, Adaptive Bitrate, 50+ Auto-scaling
    ═══════════════════════════════════════════════════════ */
 
 let ME = /*[[${username}]]*/ "Guest";
@@ -1055,9 +1054,9 @@ if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || Str
   ME = "Guest_" + Math.floor(Math.random() * 9000 + 1000);
 }
 
-// FIX: Sanitize the Room ID so extra spaces don't break joining
+// FIX: Safe Room ID Parsing (Lowercase, dashes for spaces, remove special chars)
 let rawId = new URLSearchParams(location.search).get('id');
-const ROOM = rawId ? rawId.trim().replace(/\s+/g, '-') : 'nexus-default';
+const ROOM = rawId ? rawId.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : 'nexus-default';
 
 let stream, screenStream, origVT;
 let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
@@ -1072,6 +1071,7 @@ let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// STUN Servers (Added extra for mobile network reliability)
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -1112,10 +1112,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
-  
-  // FIX: Unblock Loader automatically if stuck (Failsafe)
+
+  // FIX: Unblock Loader automatically if stuck (Ultimate Failsafe)
   setTimeout(() => {
       removeLoader();
+      if(!joined && wsOk) {
+          streamOk = true; // Force true so they can at least enter
+          tryJoin(); 
+      }
   }, 5000);
 });
 
@@ -1253,14 +1257,14 @@ function removeLoader() {
     }
 }
 
-// ── MEDIA INIT (Fully Fixed for Mobile) ──
+// ── MEDIA INIT (ULTIMATE MOBILE OPTIMIZATION) ──
 async function initMedia() {
   try {
-    // FIX: Using standardized constraints that won't fail on restrictive mobile browsers
-    const constraints = isMobileDevice 
-        ? { video: { width: { max: 480 }, frameRate: { max: 15 }, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } }
-        : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
+    // FIX: Replaced 'max' with 'ideal' to prevent OverconstrainedError on strict mobile cameras
+    const mobileConstraints = { video: { width: { ideal: 480 }, frameRate: { ideal: 15 }, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } };
+    const desktopConstraints = { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
+    const constraints = isMobileDevice ? mobileConstraints : desktopConstraints;
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     
     const lv = document.getElementById('lv');
@@ -1281,7 +1285,7 @@ async function initMedia() {
     
   } catch (err) {
     console.error("Camera Error:", err);
-    // Ultimate Fallback - Just try generic video/audio without specific modes
+    // Generic fallback if specific constraints failed
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const lv = document.getElementById('lv');
@@ -1292,7 +1296,7 @@ async function initMedia() {
       else { tryJoin(); }
       setupLocalViz();
     } catch (e2) {
-        // Audio Only Fallback
+        // Audio only fallback
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
           streamOk = true; camOff = true; syncCamUI();
@@ -1302,7 +1306,7 @@ async function initMedia() {
           setupLocalViz();
           toast("Camera blocked — audio only mode", "fa-solid fa-video-slash", "var(--warning)");
         } catch(e3) {
-          // Ghost Mode
+          // No media fallback
           streamOk = true; camOff = true; micMuted = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
           tryJoin();
@@ -1326,7 +1330,7 @@ function tryJoin() {
   }
 }
 
-// ── LOCAL AUDIO VISUALIZATION (Disabled for Mobile to save CPU) ──
+// ── LOCAL AUDIO VISUALIZATION (DISABLED ON MOBILE TO SAVE CPU) ──
 function setupLocalViz() {
   if(!stream || !stream.getAudioTracks().length || isMobileDevice) return; 
 
@@ -1389,7 +1393,6 @@ function optimizeForScaleDebounced() {
 
 function optimizeForScale() {
   const peerCount = Object.keys(peers).length;
-  // FIX: Hard limits on mobile to prevent staggering CPU overload
   let scaleDown = 1, maxBitrate = isMobileDevice ? 150000 : 600000, maxFps = isMobileDevice ? 15 : 30;
 
   if (peerCount > 40) { scaleDown = 4; maxBitrate = 40000; maxFps = 10; } 
@@ -1760,7 +1763,7 @@ async function toggleCam() {
   if (!track) {
       try {
           const constraints = isMobileDevice 
-            ? { video: { width: { max: 480 }, frameRate: { max: 15 }, facingMode: "user" } } 
+            ? { video: { facingMode: "user", width: { ideal: 480 } } } 
             : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
