@@ -162,7 +162,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   border: 2px solid var(--bg-dark); color: #fff;
 }
 .hbadge .badge-count.show { display: flex; }
-#hostBadge { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); cursor: default; }
+#hostBadge { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); cursor: default; display:none;}
 #hostBadge:hover { transform: none; }
 
 /* E2EE Lock */
@@ -1094,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
   
-  // Directly start the media and connection
+  // Directly start the media and connection exactly ONCE
   startApp();
 });
 
@@ -1137,7 +1137,6 @@ function connectWebSocket() {
       pNames = {};
       updateCount(); refreshParts();
 
-      showReconnectOverlay();
       setTimeout(() => {
         toast("Reconnecting…", "fa-solid fa-rotate", "var(--warning)");
         connectWebSocket(); 
@@ -1179,7 +1178,7 @@ function connectWebSocket() {
             return;
 
         case 'join':
-          if (!sid) return;
+          if (!sid || sid === ME) return; // FIX: Prevent joining yourself
           setTimeout(() => {
             createPC(sid, true);
             toast(`${d.senderName || 'Participant'} joined`, "fa-solid fa-user-plus", "var(--success)");
@@ -1218,7 +1217,6 @@ function connectWebSocket() {
           if (!sid) return;
           const name = pNames[sid] || 'Participant';
           
-          // WEBSOCKET IS THE ONLY WAY TO REMOVE A PEER NOW
           removePeer(sid);
           
           toast(`${name} left`, "fa-solid fa-user-minus", "var(--danger)");
@@ -1234,17 +1232,6 @@ function connectWebSocket() {
           return;
       }
     };
-}
-
-function showReconnectOverlay() {
-    let overlay = document.getElementById('reconnectOverlay');
-    if(!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'reconnectOverlay';
-        overlay.style.cssText = 'position:fixed; inset:0; background:rgba(3,3,5,0.85); backdrop-filter:blur(20px); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff;';
-        overlay.innerHTML = '<i class="fa-solid fa-rotate fa-spin" style="font-size:3rem; color:var(--primary); margin-bottom:20px;"></i><h2>Reconnecting...</h2><p style="color:var(--text-sub); margin-top:10px;">Please wait while we restore your connection.</p>';
-        document.body.appendChild(overlay);
-    }
 }
 
 // ── MEDIA INIT ──
@@ -1438,11 +1425,9 @@ function createPC(pid, initiator) {
     }
   };
 
-  // 🔴 THE ULTIMATE FIX FOR BLACK SCREEN (TRACK MERGING) 🔴
   pc.ontrack = e => {
     let tile = document.getElementById(`t-${pid}`);
     
-    // Add tile with blank stream if it doesn't exist yet
     if (!tile) {
         addTile(pid, new MediaStream());
         tile = document.getElementById(`t-${pid}`);
@@ -1450,7 +1435,6 @@ function createPC(pid, initiator) {
     
     let vid = tile.querySelector('video');
     if (vid) {
-        // Guarantee srcObject exists, then strictly add the new track
         if (!vid.srcObject) vid.srcObject = new MediaStream();
         vid.srcObject.addTrack(e.track);
         vid.play().catch(err => console.warn("Auto-play prevented", err));
@@ -1467,10 +1451,6 @@ function createPC(pid, initiator) {
     const state = pc.connectionState;
     const sig = document.querySelector(`#t-${pid} .sig-bars`);
     if (sig) sig.className = 'sig-bars ' + (state === 'connected' ? 'sig-good' : state === 'connecting' || state === 'disconnected' ? 'sig-fair' : 'sig-poor');
-
-    // 🔴 THE ULTIMATE FIX FOR MOBILE DISCONNECTIONS 🔴
-    // We DO NOT call removePeer() here anymore! We only trust the WebSocket 'leave' event to kick someone out.
-    // If connection drops, video pauses, but the tile remains until they actually leave or close app.
   };
 
   if (initiator) {
@@ -2056,11 +2036,6 @@ function endCall() {
     window.location.href = '/dashboard';
   }, 50);
 }
-
-// ── BOOT TRIGGER ──
-// Nuke loading variables & just connect immediately
-connectWebSocket();
-initMedia();
 
 /*]]>*/
 </script>
