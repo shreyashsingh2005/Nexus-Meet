@@ -1189,7 +1189,7 @@ function connectWebSocket() {
             return;
 
         case 'join':
-          if (!sid) return; 
+          if (!sid || sid === ME) return; // FIX: Prevent joining yourself
           setTimeout(() => {
             createPC(sid, true);
             toast(`${d.senderName || 'Participant'} joined`, "fa-solid fa-user-plus", "var(--success)");
@@ -2058,6 +2058,53 @@ function playTone(freq, dur, vol) {
 }
 
 function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function onBU(e) { e.preventDefault(); e.returnValue = ''; }
+window.addEventListener('beforeunload', onBU);
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isMobileDevice) {
+        if(wsOk) safeSend({ type: 'ping' });
+    }
+});
+
+function endCall() {
+  // 🔴 NEW FIX: Tearing down everything forcefully before redirect
+  document.body.innerHTML = `
+    <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
+        <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
+        <h2 style="font-weight:600;letter-spacing:1px;">Leaving Meeting...</h2>
+    </div>
+  `;
+
+  setTimeout(() => {
+    window.removeEventListener('beforeunload', onBU);
+    
+    // Send leave signal to server
+    if (wsOk) safeSend({ type: 'leave', roomId: ROOM, senderName: ME });
+    
+    // Stop all media tracks
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    
+    // Close audio contexts
+    if (aCtx) { try { aCtx.close(); } catch(e){} }
+    for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
+    
+    // Close all WebRTC Peer Connections
+    for (const pid in peers) {
+        try { peers[pid].close(); } catch(e) {}
+    }
+    
+    // Close WebSocket
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
+    
+    // Redirect
+    window.location.href = '/dashboard';
+  }, 100);
+}
 
 /*]]>*/
 </script>
