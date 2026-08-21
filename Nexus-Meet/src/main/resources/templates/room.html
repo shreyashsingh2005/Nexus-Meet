@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════
-   NEXUS MEET PRO — PURE P2P STABLE EDITION
+   NEXUS MEET PRO — ULTRA INSTANT SYNC EDITION
    ═══════════════════════════════════════════════════════ */
 
 :root {
@@ -45,9 +45,9 @@
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
   --shadow-glow-blue: 0 0 40px rgba(59,130,246,0.15);
   --shadow-glow-purple: 0 0 40px rgba(139,92,246,0.1);
-  --transition-fast: 0.15s ease;
-  --transition-med: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.1s ease;
+  --transition-med: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── RESET ── */
@@ -189,7 +189,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .tile {
   position: relative; border-radius: var(--radius-md); overflow: hidden;
   background: var(--bg-tile); border: 1px solid rgba(255,255,255,0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4); aspect-ratio: 16/9;
   flex: 0 0 auto; cursor: default;
@@ -1098,15 +1098,17 @@ document.addEventListener('DOMContentLoaded', () => {
   startApp();
 });
 
-// ── INSTANT DISCONNECT HANDLING (TAB CLOSE / CUT) ──
-window.addEventListener('beforeunload', sendLeaveSync);
-window.addEventListener('pagehide', sendLeaveSync);
-
+// ── INSTANT DISCONNECT HANDLING (TAB CLOSE / CUT / RELOAD) ──
 function sendLeaveSync() {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
+        // Force closing the socket guarantees the backend instantly triggers its 'disconnect' routine
+        ws.close(); 
     }
 }
+window.addEventListener('beforeunload', sendLeaveSync);
+window.addEventListener('pagehide', sendLeaveSync);
+window.addEventListener('unload', sendLeaveSync);
 
 // ── BOOT SEQUENCE ──
 async function startApp() {
@@ -1552,16 +1554,15 @@ function addTile(pid, s) {
   tile.append(vid, lbl, hand, pin, sig, vol);
   stage.appendChild(tile);
 
-  tile.style.opacity = '0'; tile.style.transform = 'scale(0.9)';
-  requestAnimationFrame(() => {
-    tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease-out';
-    tile.style.opacity = '1'; tile.style.transform = 'scale(1)';
-  });
+  // Instantly pop in
+  tile.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
+  tile.style.opacity = '1'; 
+  tile.style.transform = 'scale(1)';
 
   setTimeout(() => {
     const el = document.getElementById(`ln-${pid}`);
     if (el && pNames[pid]) el.textContent = pNames[pid];
-  }, 1000);
+  }, 100);
 }
 
 function removePeer(pid) {
@@ -1570,8 +1571,11 @@ function removePeer(pid) {
   delete pStats[pid];
   const t = document.getElementById(`t-${pid}`);
   if (t) {
-    t.style.opacity = '0'; t.style.transform = 'scale(0.9)';
-    setTimeout(() => t.remove(), 250);
+    // Drop the tile out instantly
+    t.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
+    t.style.opacity = '0'; 
+    t.style.transform = 'scale(0.9)';
+    setTimeout(() => t.remove(), 100);
   }
   if (pinnedId === pid) pinnedId = null;
 }
@@ -2069,12 +2073,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function endCall() {
-  // 1. TURANT SERVER KO BATAO (No Delay)
+  // 1. INSTANT SERVER NOTIFICATION
   if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
   }
 
-  // 2. UI UPDATE KARO
+  // 2. INSTANT UI TAKEDOWN (Feels incredibly fast to the user)
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
         <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
@@ -2082,31 +2086,25 @@ function endCall() {
     </div>
   `;
 
-  // 3. THODA WAIT KARO TAAKI MESSAGE CHALA JAYE, THEN CLEANUP & REDIRECT
+  // 3. WAIT ONLY 50ms FOR THE PACKET TO LEAVE THE BROWSER BEFORE REDIRECT
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
     
-    // Stop all media tracks
+    // Kill hardware accesses instantly
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (screenStream) screenStream.getTracks().forEach(t => t.stop());
     
-    // Close audio contexts
+    // Kill WebRTC memory leaks
     if (aCtx) { try { aCtx.close(); } catch(e){} }
     for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
+    for (const pid in peers) { try { peers[pid].close(); } catch(e) {} }
     
-    // Close all WebRTC Peer Connections
-    for (const pid in peers) {
-        try { peers[pid].close(); } catch(e) {}
-    }
+    // Force Kill WS
+    if (ws) { try { ws.close(); } catch(e) {} }
     
-    // Close WebSocket
-    if (ws) {
-        try { ws.close(); } catch(e) {}
-    }
-    
-    // Redirect
+    // Exit
     window.location.href = '/dashboard';
-  }, 400); // 400ms is perfectly safe to ensure packet dispatch
+  }, 50); 
 }
 
 /*]]>*/
