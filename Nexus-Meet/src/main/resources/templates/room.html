@@ -2069,7 +2069,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function endCall() {
-  // 🔴 NEW FIX: Tearing down everything forcefully before redirect
+  // 1. TURANT SERVER KO BATAO (No Delay)
+  if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
+  }
+
+  // 2. UI UPDATE KARO
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
         <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
@@ -2077,11 +2082,9 @@ function endCall() {
     </div>
   `;
 
+  // 3. THODA WAIT KARO TAAKI MESSAGE CHALA JAYE, THEN CLEANUP & REDIRECT
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
-    
-    // Send leave signal to server
-    if (wsOk) safeSend({ type: 'leave', roomId: ROOM, senderName: ME });
     
     // Stop all media tracks
     if (stream) stream.getTracks().forEach(t => t.stop());
@@ -2097,13 +2100,13 @@ function endCall() {
     }
     
     // Close WebSocket
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+    if (ws) {
+        try { ws.close(); } catch(e) {}
     }
     
     // Redirect
     window.location.href = '/dashboard';
-  }, 100);
+  }, 400); // 400ms is perfectly safe to ensure packet dispatch
 }
 
 /*]]>*/
