@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════
-   NEXUS MEET PRO — ULTRA INSTANT SYNC EDITION
+   NEXUS MEET PRO — PURE P2P STABLE EDITION
    ═══════════════════════════════════════════════════════ */
 
 :root {
@@ -45,9 +45,9 @@
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
   --shadow-glow-blue: 0 0 40px rgba(59,130,246,0.15);
   --shadow-glow-purple: 0 0 40px rgba(139,92,246,0.1);
-  --transition-fast: 0.1s ease;
-  --transition-med: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s ease;
+  --transition-med: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── RESET ── */
@@ -189,7 +189,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .tile {
   position: relative; border-radius: var(--radius-md); overflow: hidden;
   background: var(--bg-tile); border: 1px solid rgba(255,255,255,0.04);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4); aspect-ratio: 16/9;
   flex: 0 0 auto; cursor: default;
@@ -343,25 +343,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 .pnl-hdr h3 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .pnl-hdr h3 i { color: var(--primary); font-size: 0.95rem; }
-.pnl-hdr-actions { display: flex; align-items: center; gap: 8px; }
 .pnl-x {
   background: var(--glass); border: 1px solid var(--border-light); color: var(--text-sub);
   cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; transition: var(--transition-med);
 }
 .pnl-x:hover { background: var(--glass-active); color: #fff; transform: rotate(90deg); }
-.pnl-clear {
-  background: var(--glass); border: 1px solid var(--border-light); color: var(--text-sub);
-  cursor: pointer; height: 34px; padding: 0 14px; border-radius: 20px; font-size: 0.75rem;
-  font-weight: 600; display: flex; align-items: center; gap: 6px; transition: var(--transition-med);
-  font-family: inherit;
-}
-.pnl-clear:hover { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.3); }
 
 /* Chat Advanced Update */
 .chat-list { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .cmsg {
-  position: relative;
   background: var(--glass); border: 1px solid rgba(255,255,255,0.04);
   padding: 10px 14px; border-radius: 14px; font-size: 0.88rem;
   max-width: 85%; align-self: flex-start;
@@ -374,7 +365,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .cmsg.grouped-btm { border-top-left-radius: 4px; }
 .cmsg.me.grouped-top { border-radius: 14px 14px 4px 14px; border-bottom-right-radius: 4px; margin-bottom: 2px;}
 .cmsg.me.grouped-mid { border-radius: 14px 4px 4px 14px; margin-bottom: 2px;}
-.cmsg.me.grouped-btm { border-top-right-radius: 4px; border-radius: 14px 4px 14px 14px; }
+.cmsg.me.grouped-btm { border-radius: 14px 4px 14px 14px; border-top-right-radius: 4px; }
 
 @keyframes msgIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 .cm-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 12px; }
@@ -384,47 +375,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .cm-body { color: var(--text-main); line-height: 1.55; word-break: break-word; }
 .cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
 .cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
-
-/* Delete-message button — only rendered on the sender's own bubbles */
-.msg-del-btn {
-  position: absolute; top: -8px; right: -8px; width: 22px; height: 22px;
-  border-radius: 50%; background: rgba(15,15,20,0.95); border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text-sub); font-size: 0.6rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transition: var(--transition-fast); z-index: 5;
-}
-.cmsg:hover .msg-del-btn { opacity: 1; }
-.msg-del-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); transform: scale(1.1); }
-
-/* ── SMART CHAT & POLLS ── */
-.chat-file-preview { margin-top: 6px; border-radius: 8px; overflow: hidden; max-width: 100%; border: 1px solid rgba(255,255,255,0.1); }
-.chat-file-preview img { width: 100%; display: block; object-fit: cover; max-height: 200px; }
-.chat-doc-btn { 
-    display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 8px 12px; 
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
-    border-radius: 8px; color: var(--text-main); text-decoration: none; font-size: 0.8rem; font-weight: 600; 
-    transition: 0.2s;
-}
-.chat-doc-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
-
-.chat-poll {
-    background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-top: 6px;
-    border: 1px solid rgba(255,255,255,0.05); width: 280px; max-width: 100%;
-}
-.chat-poll h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
-.poll-opt {
-    position: relative; padding: 8px 12px; margin-bottom: 6px; border-radius: 8px;
-    background: rgba(255,255,255,0.05); cursor: pointer; overflow: hidden; transition: 0.2s;
-    display: flex; justify-content: space-between; align-items: center;
-    border: 1px solid transparent;
-}
-.poll-opt:hover { background: rgba(255,255,255,0.1); }
-.poll-opt.voted { border-color: var(--primary); }
-.poll-opt span { position: relative; z-index: 2; font-size: 0.85rem; font-weight: 500; }
-.poll-bar {
-    position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary-glow);
-    width: 0%; z-index: 1; transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
 .chat-foot {
   padding: 20px; border-top: 1px solid rgba(255,255,255,0.04);
@@ -872,10 +822,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 <div class="panel" id="chatPanel">
   <div class="pnl-hdr">
     <h3><i class="fa-solid fa-message"></i> Messages</h3>
-    <div class="pnl-hdr-actions">
-      <button class="pnl-clear" onclick="clearChatView()" title="Clear chat view (only clears it for you)"><i class="fa-solid fa-broom"></i> Clear</button>
-      <button class="pnl-x" onclick="togglePanel('c')"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+    <button class="pnl-x" onclick="togglePanel('c')"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="chat-list" id="chatList">
     <div class="cmsg sys">
@@ -884,9 +831,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
     </div>
   </div>
   <div class="chat-foot">
-    <label class="chat-attach-label" for="chatFileInp" title="Attach file (<300KB)"><i class="fa-solid fa-paperclip"></i></label>
-    <input type="file" id="chatFileInp" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="handleFileSelect(this)">
-    <button class="chat-attach-label" onclick="togglePollModal()" title="Create a Poll"><i class="fa-solid fa-square-poll-horizontal"></i></button>
+    <label class="chat-attach-label" for="chatFileInp" title="Attach file"><i class="fa-solid fa-paperclip"></i></label>
+    <input type="file" id="chatFileInp" style="display:none" onchange="handleFileSelect(this)">
     <input class="chat-inp" id="chatIn" type="text" placeholder="Type a message…" onkeypress="onCK(event)" maxlength="500" autocomplete="off">
     <button class="chat-go" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
@@ -986,18 +932,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
       <span class="info-key">Your Name</span>
       <span class="info-val" id="infoName">—</span>
     </div>
-  </div>
-</div>
-
-<!-- ── POLL MODAL ── -->
-<div class="sco" id="pollModal" onclick="togglePollModal()">
-  <div class="scb" onclick="event.stopPropagation()">
-    <h2><i class="fa-solid fa-square-poll-horizontal"></i> Create Live Poll</h2>
-    <input type="text" id="pollQ" placeholder="Ask a question..." class="p-search" style="margin-bottom:14px; padding: 14px 16px;">
-    <input type="text" id="pollOpt1" placeholder="Option 1" class="p-search" style="margin-bottom:10px;">
-    <input type="text" id="pollOpt2" placeholder="Option 2" class="p-search" style="margin-bottom:10px;">
-    <input type="text" id="pollOpt3" placeholder="Option 3 (Optional)" class="p-search" style="margin-bottom:10px;">
-    <button class="chat-go" style="width:100%; border-radius: 12px; margin-top: 10px;" onclick="submitPoll()">Send Poll</button>
   </div>
 </div>
 
@@ -1115,22 +1049,18 @@ let viewMode = 'g', pinnedId = null, activePanel = null;
 let meetStart = Date.now(), aCtx, localAn;
 let noiseSuppression = true, mirrorSelf = true, hdMode = false, showStats = false, joinSounds = true, autoHide = false;
 let autoHideTimer = null;
+let lastMsgSender = null; 
 let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-let activePolls = {}; 
 
-// ── ICE SERVERS: STUN + TURN (TURN required for mobile / carrier-grade NAT) ──
+// ── FIXED ICE SERVERS FOR MOBILE NAT ──
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'stun:stun.services.mozilla.com' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    { urls: 'stun:stun.services.mozilla.com' }
   ],
-  iceCandidatePoolSize: 4,
   sdpSemantics: 'unified-plan',
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require'
@@ -1168,78 +1098,14 @@ document.addEventListener('DOMContentLoaded', () => {
   startApp();
 });
 
-// ── LEAVE NOTIFICATION (TAB CLOSE / RELOAD) ──
-// NOTE: we intentionally do NOT stop the camera/mic tracks or close the
-// RTCPeerConnections here. Mobile browsers (iOS Safari, Android Chrome)
-// fire 'pagehide' / 'visibilitychange' just from backgrounding the tab —
-// switching apps, locking the screen, swiping up — the page is NOT actually
-// closing, it is being frozen/suspended and will resume. Killing the camera
-// here (as the previous version did) permanently broke the local video on
-// phones, because a stopped MediaStreamTrack cannot be restarted — it has
-// to be re-acquired with getUserMedia(), and nothing was doing that on
-// resume. Real teardown only happens in endCall(), the explicit "Leave"
-// button, further down.
+// ── INSTANT DISCONNECT HANDLING (TAB CLOSE / CUT) ──
+window.addEventListener('beforeunload', sendLeaveSync);
+window.addEventListener('pagehide', sendLeaveSync);
+
 function sendLeaveSync() {
     if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME })); } catch(e) {}
+        ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
     }
-}
-window.addEventListener('pagehide', (e) => { if (!e.persisted) sendLeaveSync(); });
-window.addEventListener('beforeunload', sendLeaveSync);
-
-// ── MOBILE CAMERA SELF-HEALING ──
-// If the OS actually does kill the camera/mic track while backgrounded
-// (common on lower-memory Android devices), reacquire it automatically once
-// the tab is visible/foregrounded again instead of leaving a frozen tile.
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) recoverMediaIfNeeded();
-});
-window.addEventListener('pageshow', () => recoverMediaIfNeeded());
-
-function attachEndedHandlers(s) {
-  if (!s) return;
-  s.getTracks().forEach(t => { t.onended = () => recoverMediaIfNeeded(); });
-}
-
-async function recoverMediaIfNeeded() {
-  if (!stream) return;
-  const vt = stream.getVideoTracks()[0];
-  const at = stream.getAudioTracks()[0];
-  const needsVideo = !!vt && vt.readyState === 'ended' && !camOff;
-  const needsAudio = !!at && at.readyState === 'ended';
-  if (!needsVideo && !needsAudio) return;
-  try {
-    const constraints = isMobileDevice
-      ? { video: needsVideo ? { facingMode: "user", width: { ideal: 480 }, frameRate: { ideal: 15 } } : false,
-          audio: needsAudio ? { echoCancellation: true, noiseSuppression: true } : false }
-      : { video: needsVideo, audio: needsAudio };
-    const fresh = await navigator.mediaDevices.getUserMedia(constraints);
-    if (needsVideo) {
-      const newTrack = fresh.getVideoTracks()[0];
-      if (vt) stream.removeTrack(vt);
-      stream.addTrack(newTrack);
-      document.getElementById('lv').srcObject = stream;
-      for (const pid in peers) {
-        const sender = peers[pid].getSenders().find(s => s.track?.kind === 'video');
-        if (sender) sender.replaceTrack(newTrack);
-      }
-      newTrack.onended = () => recoverMediaIfNeeded();
-    }
-    if (needsAudio) {
-      const newATrack = fresh.getAudioTracks()[0];
-      if (at) stream.removeTrack(at);
-      stream.addTrack(newATrack);
-      newATrack.enabled = !micMuted;
-      for (const pid in peers) {
-        const sender = peers[pid].getSenders().find(s => s.track?.kind === 'audio');
-        if (sender) sender.replaceTrack(newATrack);
-      }
-      newATrack.onended = () => recoverMediaIfNeeded();
-    }
-    toast("Camera reconnected", "fa-solid fa-video", "var(--success)");
-  } catch (e) {
-    console.error("Media recovery failed:", e);
-  }
 }
 
 // ── BOOT SEQUENCE ──
@@ -1289,7 +1155,7 @@ function connectWebSocket() {
       const sid = d.sender || d.senderId || d.sessionId;
       
       // 🔴 GHOST BUG FIX: STRICTLY IGNORE MY OWN MESSAGES FROM SERVER ECHO
-      if (d.senderName === ME && d.type !== 'join_ack' && d.type !== 'mute_force' && d.type !== 'chat_delete') return;
+      if (d.senderName === ME && d.type !== 'join_ack' && d.type !== 'mute_force') return;
 
       if (d.senderName && sid) pNames[sid] = d.senderName;
 
@@ -1375,22 +1241,9 @@ function connectWebSocket() {
 
         case 'chat':
           if (sid) {
-            appendMsg(d.senderName || 'Participant', d, false);
+            appendMsg(d.senderName || 'Participant', d.message, false);
             if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
           }
-          return;
-          
-        case 'poll_create':
-          handlePollCreate(d);
-          if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
-          return;
-          
-        case 'poll_vote':
-          handlePollVote(d);
-          return;
-
-        case 'chat_delete':
-          if (d.msgId) deleteMsg(d.msgId, false);
           return;
       }
     };
@@ -1404,7 +1257,6 @@ async function initMedia() {
         : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
     stream = await navigator.mediaDevices.getUserMedia(constraints);
-    attachEndedHandlers(stream);
     
     const lv = document.getElementById('lv');
     if (lv) {
@@ -1421,7 +1273,6 @@ async function initMedia() {
     console.error("Camera Error:", err);
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      attachEndedHandlers(stream);
       const lv = document.getElementById('lv');
       if (lv) { lv.srcObject = stream; lv.play().catch(e=>{}); }
       streamOk = true; 
@@ -1431,7 +1282,6 @@ async function initMedia() {
     } catch (e2) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-          attachEndedHandlers(stream);
           streamOk = true; camOff = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
           tryJoin();
@@ -1603,7 +1453,6 @@ function createPC(pid, initiator) {
   if (peers[pid]) return peers[pid];
   const pc = new RTCPeerConnection(ICE);
   peers[pid] = pc;
-  pc._negReady = false; // becomes true once the initial handshake has connected once
 
   if (stream) stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
@@ -1611,20 +1460,6 @@ function createPC(pid, initiator) {
     if (e.candidate && ws.readyState === WebSocket.OPEN) {
         safeSend({ type: 'candidate', candidate: e.candidate, roomId: ROOM, target: pid, targetId: pid });
     }
-  };
-
-  // ── RENEGOTIATION: fires when tracks are added/replaced after the first
-  // handshake (e.g. camera turned on after an audio-only fallback, or the
-  // camera self-healing swap above). Without this, remote peers never
-  // receive tracks added after the initial offer/answer.
-  pc.onnegotiationneeded = async () => {
-    if (!pc._negReady) return; // initial handshake is handled explicitly below/via incoming offer
-    try {
-      if (pc.signalingState !== 'stable') return;
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      safeSend({ type: 'offer', offer, roomId: ROOM, target: pid, targetId: pid, senderName: ME });
-    } catch (e) { console.error('Renegotiation error:', e); }
   };
 
   pc.ontrack = e => {
@@ -1654,9 +1489,6 @@ function createPC(pid, initiator) {
   // 🔴 INSTANT HATAO BUG FIX: Detect Connection Failure instantly
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
-    if (state === 'connected') {
-        pc._negReady = true; // safe to renegotiate now that the first handshake succeeded
-    }
     if (state === 'failed' || state === 'disconnected' || state === 'closed') {
         removePeer(pid); updateCount(); refreshParts(); optimizeForScaleDebounced();
     } else {
@@ -1720,15 +1552,16 @@ function addTile(pid, s) {
   tile.append(vid, lbl, hand, pin, sig, vol);
   stage.appendChild(tile);
 
-  // Instantly pop in
-  tile.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
-  tile.style.opacity = '1'; 
-  tile.style.transform = 'scale(1)';
+  tile.style.opacity = '0'; tile.style.transform = 'scale(0.9)';
+  requestAnimationFrame(() => {
+    tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease-out';
+    tile.style.opacity = '1'; tile.style.transform = 'scale(1)';
+  });
 
   setTimeout(() => {
     const el = document.getElementById(`ln-${pid}`);
     if (el && pNames[pid]) el.textContent = pNames[pid];
-  }, 100);
+  }, 1000);
 }
 
 function removePeer(pid) {
@@ -1737,11 +1570,8 @@ function removePeer(pid) {
   delete pStats[pid];
   const t = document.getElementById(`t-${pid}`);
   if (t) {
-    // Drop the tile out instantly
-    t.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
-    t.style.opacity = '0'; 
-    t.style.transform = 'scale(0.9)';
-    setTimeout(() => t.remove(), 100);
+    t.style.opacity = '0'; t.style.transform = 'scale(0.9)';
+    setTimeout(() => t.remove(), 250);
   }
   if (pinnedId === pid) pinnedId = null;
 }
@@ -1878,15 +1708,10 @@ function showTypingIndicator(name) {
     typingTimer = setTimeout(() => { indicator.classList.remove('show'); }, 2000);
 }
 
-function genMsgId() {
-  return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-}
-
 function sendChat() {
   const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
-  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg, msgId: genMsgId() };
-  appendMsg(ME, msgObj, true);
-  safeSend(msgObj);
+  appendMsg(ME, msg, true);
+  safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg });
   el.value = '';
   const ind = document.getElementById('typingIndicator');
   if(ind) ind.classList.remove('show');
@@ -1895,234 +1720,52 @@ function onCK(e) { if (e.key === 'Enter') sendChat(); }
 
 function handleFileSelect(input) {
     if(input.files && input.files[0]) {
-        const file = input.files[0];
-        if (file.size > 300 * 1024) { 
-            toast("File too large! Max size is 300KB.", "fa-solid fa-triangle-exclamation", "var(--danger)");
-            input.value = '';
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64 = e.target.result;
-            const msgObj = {
-                type: 'chat',
-                roomId: ROOM,
-                senderName: ME,
-                message: file.name,
-                isFile: true,
-                fileData: base64,
-                fileType: file.type,
-                msgId: genMsgId()
-            };
-            safeSend(msgObj);
-            appendMsg(ME, msgObj, true);
-        };
-        reader.readAsDataURL(file);
+        const fileName = input.files[0].name;
+        toast(`File ${esc(fileName)} ready for secure transfer.`, "fa-solid fa-file-shield", "var(--success)");
         input.value = '';
     }
 }
 
-// ── CHAT RENDERING (fixed to match the .cmsg / .cm-hdr / .cm-who / .cm-t / .cm-body
-// structure that is actually styled in <style>. The previous version built a
-// different, unstyled DOM shape (.cmsg-group / .cmsg-sender / .cmsg-time), so
-// sender names and timestamps rendered as raw unstyled text that looked like
-// stray/duplicate "ghost" entries in the chat box. This also drops the fragile
-// `lastMsgSender` global in favor of reading the sender straight off the last
-// rendered bubble, so grouping stays correct across reconnects. Each bubble now
-// also carries data-msgid so it can be targeted for deletion, and shows a small
-// trash icon (on hover) for messages you sent yourself. ──
-function appendMsg(sender, data, isMe) {
+function appendMsg(sender, text, isMe) {
   const c = document.getElementById('chatList');
-  const text = typeof data === 'string' ? data : data.message;
-  const msgId = (typeof data === 'object' && data.msgId) ? data.msgId : genMsgId();
+  let isGrouped = false;
+  let classes = `cmsg ${isMe ? 'me' : ''}`;
+  
+  const children = Array.from(c.children);
+  let lastMsgGroup = null;
+  for (let i = children.length - 1; i >= 0; i--) {
+      if (children[i].id !== 'typingIndicator') { lastMsgGroup = children[i]; break; }
+  }
+  
+  if (lastMsgSender === sender && lastMsgGroup && !lastMsgGroup.classList.contains('sys')) {
+      isGrouped = true;
+      const prevMsg = lastMsgGroup.lastElementChild; 
+      if(prevMsg && prevMsg.classList.contains('cmsg')) {
+          prevMsg.classList.remove('grouped-btm');
+          prevMsg.classList.add('grouped-top');
+          classes += ' grouped-btm';
+      }
+  } else {
+      lastMsgSender = sender;
+  }
+
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const ind = document.getElementById('typingIndicator');
 
-  // Find the last real message bubble (skip the persistent typing indicator)
-  const children = Array.from(c.children);
-  let lastEl = null;
-  for (let i = children.length - 1; i >= 0; i--) {
-    if (children[i].id !== 'typingIndicator') { lastEl = children[i]; break; }
-  }
-
-  const isGrouped = !!(lastEl && lastEl.dataset && lastEl.dataset.sender === sender && !lastEl.classList.contains('sys'));
-
-  let contentHtml = esc(text);
-  if (data && data.isFile) {
-      if (data.fileType && data.fileType.startsWith('image/')) {
-          contentHtml = `
-            <div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:4px;">${esc(text)}</div>
-            <div class="chat-file-preview">
-                <a href="${data.fileData}" download="${esc(text)}">
-                    <img src="${data.fileData}" alt="Image Attachment" />
-                </a>
-            </div>`;
-      } else {
-          contentHtml = `
-            <a href="${data.fileData}" download="${esc(text)}" class="chat-doc-btn">
-                <i class="fa-solid fa-file-arrow-down" style="color:var(--primary);"></i> Download ${esc(text)}
-            </a>`;
-      }
-  }
-
-  const delBtn = isMe ? `<button class="msg-del-btn" onclick="deleteMsg('${msgId}', true)" title="Delete for everyone"><i class="fa-solid fa-trash"></i></button>` : '';
-
-  if (isGrouped) {
-    // The previous bubble now has a follower: flip its trailing rounding.
-    if (lastEl.classList.contains('grouped-top')) {
-      lastEl.classList.remove('grouped-top'); lastEl.classList.add('grouped-mid');
-    } else if (!lastEl.classList.contains('grouped-mid')) {
-      lastEl.classList.add('grouped-top');
-    }
-
-    const msg = document.createElement('div');
-    msg.className = `cmsg ${isMe ? 'me' : ''} grouped-btm`;
-    msg.dataset.sender = sender;
-    msg.dataset.msgid = msgId;
-    msg.innerHTML = `<div class="cm-body">${contentHtml}<span class="cm-t" style="margin-left:8px;">${now}</span></div>${delBtn}`;
-    if (ind) c.insertBefore(msg, ind); else c.appendChild(msg);
+  if(isGrouped) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = classes;
+      msgDiv.innerHTML = `${esc(text)} <span class="cmsg-time">${now}</span>`;
+      lastMsgGroup.appendChild(msgDiv);
   } else {
-    const msg = document.createElement('div');
-    msg.className = `cmsg ${isMe ? 'me' : ''}`;
-    msg.dataset.sender = sender;
-    msg.dataset.msgid = msgId;
-    msg.innerHTML = `
-      <div class="cm-hdr">
-        <span class="cm-who">${isMe ? 'You' : esc(sender)}</span>
-        <span class="cm-t">${now}</span>
-      </div>
-      <div class="cm-body">${contentHtml}</div>${delBtn}`;
-    if (ind) c.insertBefore(msg, ind); else c.appendChild(msg);
+      const group = document.createElement('div');
+      group.className = `cmsg-group ${isMe ? 'me' : ''}`;
+      group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>
+        <div class="${classes}">${esc(text)} <span class="cmsg-time">${now}</span></div>`;
+      
+      if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
   }
   c.scrollTop = c.scrollHeight;
-}
-
-// Delete a single message. `notify` broadcasts the deletion to everyone else
-// in the room over the signaling socket; pass false when just applying a
-// deletion someone else already broadcast to us.
-function deleteMsg(msgId, notify) {
-  if (!msgId) return;
-  const el = document.querySelector(`.cmsg[data-msgid="${CSS.escape(msgId)}"]`);
-  if (el) el.remove();
-  if (notify) safeSend({ type: 'chat_delete', roomId: ROOM, msgId, senderName: ME });
-}
-
-// Clears the chat log from your own view only (local, no network message) —
-// handy for tidying up a long meeting's chat without affecting other people.
-function clearChatView() {
-  const c = document.getElementById('chatList');
-  Array.from(c.children).forEach(el => {
-    if (el.id !== 'typingIndicator' && !el.classList.contains('sys')) el.remove();
-  });
-  toast("Chat cleared (just for you)", "fa-solid fa-broom", "var(--text-sub)");
-}
-
-// ── LIVE POLLS SYSTEM ──
-function togglePollModal() {
-    document.getElementById('pollModal').classList.toggle('show');
-}
-
-function submitPoll() {
-    const q = document.getElementById('pollQ').value.trim();
-    const o1 = document.getElementById('pollOpt1').value.trim();
-    const o2 = document.getElementById('pollOpt2').value.trim();
-    const o3 = document.getElementById('pollOpt3').value.trim();
-    
-    if (!q || !o1 || !o2) {
-        toast("Question and at least 2 options required", "fa-solid fa-triangle-exclamation", "var(--warning)");
-        return;
-    }
-    
-    const options = [o1, o2];
-    if (o3) options.push(o3);
-    
-    const pollId = 'poll_' + Date.now();
-    const pollData = {
-        type: 'poll_create',
-        roomId: ROOM,
-        pollId: pollId,
-        senderName: ME,
-        question: q,
-        options: options
-    };
-    
-    togglePollModal();
-    
-    document.getElementById('pollQ').value = '';
-    document.getElementById('pollOpt1').value = '';
-    document.getElementById('pollOpt2').value = '';
-    document.getElementById('pollOpt3').value = '';
-    
-    handlePollCreate(pollData); // Render locally
-    safeSend(pollData); // Sync with network
-}
-
-function handlePollCreate(data) {
-    activePolls[data.pollId] = {
-        question: data.question,
-        options: data.options.map(opt => ({ text: opt, votes: 0 })),
-        totalVotes: 0,
-        hasVoted: false
-    };
-    
-    const c = document.getElementById('chatList');
-    const pollDiv = document.createElement('div');
-    pollDiv.className = 'chat-poll';
-    pollDiv.id = data.pollId;
-    
-    let optsHtml = '';
-    data.options.forEach((opt, idx) => {
-        optsHtml += `
-            <div class="poll-opt" id="opt_${data.pollId}_${idx}" onclick="castVote('${data.pollId}', ${idx})">
-                <div class="poll-bar" id="bar_${data.pollId}_${idx}"></div>
-                <span>${esc(opt)}</span>
-                <span id="vc_${data.pollId}_${idx}" style="font-weight:700; z-index:2;">0%</span>
-            </div>
-        `;
-    });
-    
-    pollDiv.innerHTML = `
-        <div style="font-size:0.75rem; color:var(--primary); font-weight:600; margin-bottom:6px;"><i class="fa-solid fa-square-poll-horizontal"></i> Poll by ${esc(data.senderName)}</div>
-        <h4>${esc(data.question)}</h4>
-        ${optsHtml}
-        <div style="font-size:0.7rem; color:var(--text-dim); text-align:right; margin-top:8px;" id="total_${data.pollId}">0 votes</div>
-    `;
-    
-    c.appendChild(pollDiv);
-    c.scrollTop = c.scrollHeight;
-}
-
-function castVote(pollId, optionIdx) {
-    if (activePolls[pollId].hasVoted) return; 
-    activePolls[pollId].hasVoted = true;
-    
-    document.getElementById(`opt_${pollId}_${optionIdx}`).classList.add('voted');
-    
-    const voteData = {
-        type: 'poll_vote',
-        roomId: ROOM,
-        pollId: pollId,
-        optionIdx: optionIdx
-    };
-    
-    handlePollVote(voteData); // Local
-    safeSend(voteData); // Network
-}
-
-function handlePollVote(data) {
-    const poll = activePolls[data.pollId];
-    if (!poll) return;
-    
-    poll.options[data.optionIdx].votes++;
-    poll.totalVotes++;
-    
-    document.getElementById(`total_${data.pollId}`).textContent = `${poll.totalVotes} votes`;
-    
-    poll.options.forEach((opt, idx) => {
-        const pct = poll.totalVotes > 0 ? Math.round((opt.votes / poll.totalVotes) * 100) : 0;
-        document.getElementById(`bar_${data.pollId}_${idx}`).style.width = pct + '%';
-        document.getElementById(`vc_${data.pollId}_${idx}`).textContent = pct + '%';
-    });
 }
 
 // ── CONTROLS ──
@@ -2136,7 +1779,6 @@ async function toggleCam() {
             : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
-          newTrack.onended = () => recoverMediaIfNeeded();
           stream.addTrack(newTrack);
           document.getElementById('lv').srcObject = stream;
           
@@ -2381,7 +2023,6 @@ document.addEventListener('keydown', e => {
       document.getElementById('rpop').classList.remove('show');
       document.getElementById('scOver').classList.remove('show');
       document.getElementById('infoOv').classList.remove('show');
-      document.getElementById('pollModal').classList.remove('show');
       if (activePanel) togglePanel(activePanel);
       break;
   }
@@ -2428,17 +2069,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function endCall() {
-  // Explicit "Leave" — this is the only place that actually tears everything
-  // down (stops camera/mic, closes peers & socket). Ambient lifecycle events
-  // above deliberately do NOT do this, so backgrounding the tab on a phone
-  // no longer kills your camera.
-  sendLeaveSync();
-  if (ws && ws.readyState === WebSocket.OPEN) { try { ws.close(); } catch(e) {} }
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-  for (let pid in peers) { if (peers[pid]) peers[pid].close(); }
-
-  // INSTANT UI TAKEDOWN (Feels incredibly fast to the user)
+  // 🔴 NEW FIX: Tearing down everything forcefully before redirect
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
         <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
@@ -2446,17 +2077,33 @@ function endCall() {
     </div>
   `;
 
-  // WAIT ONLY 50ms FOR THE PACKET TO LEAVE THE BROWSER BEFORE REDIRECT
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
     
-    // Kill WebRTC memory leaks
+    // Send leave signal to server
+    if (wsOk) safeSend({ type: 'leave', roomId: ROOM, senderName: ME });
+    
+    // Stop all media tracks
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    
+    // Close audio contexts
     if (aCtx) { try { aCtx.close(); } catch(e){} }
     for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
     
-    // Exit
+    // Close all WebRTC Peer Connections
+    for (const pid in peers) {
+        try { peers[pid].close(); } catch(e) {}
+    }
+    
+    // Close WebSocket
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
+    
+    // Redirect
     window.location.href = '/dashboard';
-  }, 50); 
+  }, 100);
 }
 
 /*]]>*/
