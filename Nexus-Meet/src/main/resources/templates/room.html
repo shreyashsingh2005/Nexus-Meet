@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="google" content="notranslate">
-<title>Meeting Room - Nexus Meet</title>
+<title>Meeting Room - Nexus Meet Pro</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -77,7 +77,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   66% { transform: translate(-2%, 3%) scale(0.95); }
   100% { transform: translate(1%, -1%) scale(1.02); }
 }
-/* Noise texture overlay */
 .bg-noise {
   position: fixed; inset: 0; z-index: -1; opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
@@ -93,7 +92,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 #hdr > * { pointer-events: auto; }
 
-/* Logo */
 .logo { display: flex; align-items: center; gap: 14px; text-decoration: none; user-select: none; }
 .logo-mark {
   width: 40px; height: 40px; border-radius: 14px; position: relative;
@@ -111,7 +109,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .logo-name { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; display: flex; gap: 5px; }
 .logo-name span { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-/* Center Controls */
 .hdr-c {
   display: flex; align-items: center; gap: 6px;
   background: var(--glass); backdrop-filter: blur(24px) saturate(180%);
@@ -135,7 +132,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .vb.on { background: rgba(255,255,255,0.1); color: #fff; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
 .vb:hover:not(.on) { color: #fff; background: rgba(255,255,255,0.04); }
 
-/* Network Quality Badge */
 .net-badge {
   display: flex; align-items: center; gap: 6px; padding: 6px 12px;
   border-radius: 20px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
@@ -146,7 +142,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .net-badge.poor { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
 .net-badge i { font-size: 0.65rem; }
 
-/* Header Right */
 .hdr-r { display: flex; align-items: center; gap: 8px; }
 .hbadge {
   display: flex; align-items: center; gap: 8px;
@@ -165,7 +160,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 #hostBadge { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); cursor: default; display:none;}
 #hostBadge:hover { transform: none; }
 
-/* E2EE Lock */
 .e2ee-badge {
   display: flex; align-items: center; gap: 6px; padding: 6px 12px;
   border-radius: 20px; font-size: 0.72rem; font-weight: 600;
@@ -174,16 +168,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 .e2ee-badge i { font-size: 0.7rem; }
 
-/* ═══════════ VIDEO STAGE (50+ USER GRID) ═══════════ */
+/* ═══════════ VIDEO STAGE ═══════════ */
+/* 🔴 VIBRATION FIX: Switched to explicit right position and forced scrollbar */
 #stage {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
   padding: 80px 20px 130px 20px; gap: 10px;
-  overflow-y: auto; overflow-x: hidden;
+  overflow-y: scroll; 
+  overflow-x: hidden;
   scroll-behavior: smooth;
-  transition: padding var(--transition-med);
+  transition: right var(--transition-slow);
 }
-#stage.panel-open { padding-right: 420px; }
+#stage.panel-open { right: 420px; }
 
 /* ── TILE ── */
 .tile {
@@ -203,7 +199,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .tile video { width: 100%; height: 100%; object-fit: cover; display: block; z-index: 0; }
 #lv { transform: scaleX(-1); }
 
-/* Active Speaker Glow */
 .tile.speaking {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.5), 0 0 30px rgba(59,130,246,0.15), 0 8px 30px rgba(0,0,0,0.4);
@@ -215,23 +210,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   max-width: 100%; width: 100% !important; max-height: 65vh; flex-basis: 100% !important; order: -1;
 }
 
-/* ── DYNAMIC GRID SCALING: 1 → 50+ users ── */
 #stage.n1 .tile { width: 100%; max-width: 1100px; max-height: 72vh; }
 #stage.n2 .tile { width: calc(50% - 10px); max-width: 800px; }
 #stage.n3 .tile { width: calc(50% - 10px); max-width: 700px; }
 #stage.n4 .tile { width: calc(50% - 10px); max-width: 600px; }
-#stage.n5 .tile,
-#stage.n6 .tile { width: calc(33.333% - 10px); max-height: 36vh; }
-#stage.n7 .tile,
-#stage.n8 .tile,
-#stage.n9 .tile { width: calc(33.333% - 10px); max-height: 28vh; }
+#stage.n5 .tile, #stage.n6 .tile { width: calc(33.333% - 10px); max-height: 36vh; }
+#stage.n7 .tile, #stage.n8 .tile, #stage.n9 .tile { width: calc(33.333% - 10px); max-height: 28vh; }
 #stage.n12 .tile { width: calc(25% - 10px); max-height: 25vh; }
 #stage.n16 .tile { width: calc(25% - 10px); max-height: 22vh; min-width: 200px; }
 #stage.n25 .tile { width: calc(20% - 10px); max-height: 18vh; min-width: 180px; }
 #stage.many .tile { width: calc(16.666% - 10px); max-height: 16vh; min-width: 160px; }
 #stage.massive .tile { width: calc(12.5% - 8px); max-height: 14vh; min-width: 140px; }
 
-/* Speaker View */
 #stage.spk .tile { width: 100%; max-height: 100vh; }
 #stage.spk .tile.pip-tile {
   position: fixed; bottom: 140px; right: 30px; width: 280px; z-index: 35;
@@ -239,7 +229,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   border: 1px solid rgba(255,255,255,0.15); aspect-ratio: 16/9; max-height: none; flex: none;
 }
 
-/* ── TILE UI OVERLAYS ── */
 .pres-ov {
   position: absolute; inset: 0; background: rgba(5,5,8,0.96); backdrop-filter: blur(12px);
   display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -268,7 +257,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 .av-sub { font-size: 0.85rem; color: var(--text-sub); font-weight: 500; }
 
-/* Bottom label */
 .tlbl {
   position: absolute; bottom: 10px; left: 10px;
   background: rgba(0,0,0,0.65); backdrop-filter: blur(16px);
@@ -283,7 +271,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .mic-dot.on { color: var(--success); background: rgba(16,185,129,0.15); }
 .mic-dot.off { color: var(--danger); background: rgba(239,68,68,0.15); }
 
-/* Hand badge */
 .hbdg {
   position: absolute; top: 10px; right: 10px; font-size: 1.3rem;
   color: var(--warning); z-index: 4; display: none;
@@ -293,7 +280,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .hbdg.show { display: block; }
 @keyframes gentleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-/* Pin button */
 .pin-b {
   position: absolute; top: 10px; left: 10px; width: 34px; height: 34px;
   background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
@@ -305,7 +291,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .tile:hover .pin-b { opacity: 1; }
 .pin-b:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: scale(1.1); }
 
-/* Signal indicator */
 .sig-bars {
   position: absolute; bottom: 10px; right: 10px; display: flex; gap: 3px;
   align-items: flex-end; z-index: 4; background: rgba(0,0,0,0.55);
@@ -317,12 +302,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .sig-fair .b:nth-child(1), .sig-fair .b:nth-child(2) { background: var(--warning); } .sig-fair .b:nth-child(3) { background: rgba(255,255,255,0.15); }
 .sig-poor .b:nth-child(1) { background: var(--danger); } .sig-poor .b:nth-child(2), .sig-poor .b:nth-child(3) { background: rgba(255,255,255,0.1); }
 
-/* Tile volume meter */
 .vol-meter {
   position: absolute; left: 0; bottom: 0; height: 3px; z-index: 3;
   background: linear-gradient(90deg, var(--primary), var(--accent));
-  border-radius: 0 0 0 var(--radius-md);
-  width: 0%; transition: width 0.1s linear;
+  border-radius: 0 0 0 var(--radius-md); width: 0%; transition: width 0.1s linear;
   box-shadow: 0 0 10px var(--primary-glow);
 }
 
@@ -330,10 +313,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .panel {
   position: fixed; top: 0; right: -440px; bottom: 0; width: min(420px, 100vw);
   background: var(--bg-panel); backdrop-filter: blur(40px) saturate(180%);
-  border-left: 1px solid var(--border-light);
-  display: flex; flex-direction: column;
-  transition: right var(--transition-slow); z-index: 100;
-  box-shadow: -15px 0 50px rgba(0,0,0,0.6);
+  border-left: 1px solid var(--border-light); display: flex; flex-direction: column;
+  transition: right var(--transition-slow); z-index: 100; box-shadow: -15px 0 50px rgba(0,0,0,0.6);
 }
 .panel.open { right: 0; }
 
@@ -357,8 +338,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   padding: 10px 14px; border-radius: 14px; font-size: 0.88rem;
   max-width: 85%; align-self: flex-start;
   animation: msgIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible !important; position: relative; /* 🔴 FIX: Allows delete menu to appear */
 }
-/* Smart Grouping styles */
 .cmsg.me { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.15); align-self: flex-end; }
 .cmsg.grouped-top { border-bottom-left-radius: 4px; margin-bottom: 2px; }
 .cmsg.grouped-mid { border-radius: 4px 14px 14px 4px; margin-bottom: 2px; }
@@ -376,7 +357,27 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
 .cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
 
-/* ── SMART CHAT & POLLS ── */
+/* ── NEW: HOVER DELETE MENU ── */
+.msg-act {
+    position: absolute; right: 10px; top: -14px; background: var(--bg-panel); border: 1px solid var(--border-light); 
+    border-radius: 8px; display: none; flex-direction: column; z-index: 20; box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.cmsg:hover .msg-act { display: flex; }
+.cmsg.me .msg-act { left: 10px; right: auto; }
+@media(max-width: 768px) {
+    .msg-act { top: -10px; flex-direction: row; }
+    .cmsg.me .msg-act { left: 5px; }
+}
+.m-btn { 
+    background: transparent; border: none; color: var(--text-main); cursor: pointer; 
+    padding: 6px 12px; font-size: 0.75rem; transition: 0.2s; white-space: nowrap; text-align: left;
+}
+.m-btn:hover { background: var(--glass-hover); }
+.m-btn.red { color: var(--danger); }
+.m-btn.red:hover { background: rgba(239,68,68,0.15); }
+.deleted-msg { font-style: italic; opacity: 0.7; font-size: 0.8rem; }
+
+/* File / Image Attachment Styles */
 .chat-file-preview { margin-top: 6px; border-radius: 8px; overflow: hidden; max-width: 100%; border: 1px solid rgba(255,255,255,0.1); }
 .chat-file-preview img { width: 100%; display: block; object-fit: cover; max-height: 200px; }
 .chat-doc-btn { 
@@ -387,6 +388,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 .chat-doc-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
 
+/* Poll Styles */
 .chat-poll {
     background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-top: 6px;
     border: 1px solid rgba(255,255,255,0.05); width: 280px; max-width: 100%;
@@ -730,7 +732,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   .e2ee-badge span { display: none; }
   
   #stage { padding: 70px 6px 140px 6px; gap: 6px; }
-  #stage.panel-open { padding-right: 6px; }
+  #stage.panel-open { right: 0; } 
   
   #cbar { 
     bottom: 10px; padding: 8px; gap: 6px; border-radius: 24px; 
@@ -1086,7 +1088,7 @@ const ROOM = rawId ? rawId.trim() : 'nexus-default';
 
 let stream, screenStream, origVT;
 let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
-let wsOk = false, streamOk = false, joined = false;
+let wsOk = false, streamOk = false, joined = false, isLeaving = false; // 🔴 FIX: Added isLeaving state
 let micMuted = false, camOff = false, sharing = false, handUp = false, recording = false;
 let viewMode = 'g', pinnedId = null, activePanel = null;
 let meetStart = Date.now(), aCtx, localAn;
@@ -1098,16 +1100,15 @@ let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 let activePolls = {}; 
 
-// ── FIXED ICE SERVERS FOR MOBILE NAT ──
+// ── 🔴 FIX: HIGH-RELIABILITY STUN SERVERS TO PREVENT DROPS ──
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'stun:stun.services.mozilla.com' }
-  ],
-  sdpSemantics: 'unified-plan',
-  bundlePolicy: 'max-bundle',
-  rtcpMuxPolicy: 'require'
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' }
+  ]
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1136,17 +1137,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 
-  setInterval(() => { if (wsOk) safeSend({ type: 'ping' }); }, 15000);
+  setInterval(() => { if (wsOk && !isLeaving) safeSend({ type: 'ping' }); }, 15000);
   
-  // Directly start the media and connection exactly ONCE
   startApp();
 });
 
 // ── INSTANT DISCONNECT HANDLING (TAB CLOSE / CUT / RELOAD) ──
 function sendLeaveSync() {
+    isLeaving = true; 
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
-        // Force closing the socket guarantees the backend instantly triggers its 'disconnect' routine
         ws.close(); 
     }
     // Instant 0 second kill
@@ -1180,8 +1180,11 @@ function connectWebSocket() {
         tryJoin();
     };
     
-    ws.onerror = () => toast("Connection error — retrying…", "fa-solid fa-triangle-exclamation", "var(--danger)");
+    ws.onerror = () => { if (!isLeaving) toast("Connection error — retrying…", "fa-solid fa-triangle-exclamation", "var(--danger)"); };
+    
     ws.onclose = () => {
+      if (isLeaving) return; // 🔴 FIX: Prevent reconnect loop if user left intentionally
+      
       wsOk = false; joined = false;
       toast("Disconnected from server", "fa-solid fa-plug-circle-xmark", "var(--danger)");
       
@@ -1195,8 +1198,10 @@ function connectWebSocket() {
       updateCount(); refreshParts();
 
       setTimeout(() => {
-        toast("Reconnecting…", "fa-solid fa-rotate", "var(--warning)");
-        connectWebSocket(); 
+        if(!isLeaving) {
+            toast("Reconnecting…", "fa-solid fa-rotate", "var(--warning)");
+            connectWebSocket(); 
+        }
       }, 5000);
     };
 
@@ -1204,9 +1209,7 @@ function connectWebSocket() {
       const d = JSON.parse(ev.data);
       const sid = d.sender || d.senderId || d.sessionId;
       
-      // 🔴 GHOST BUG FIX: STRICTLY IGNORE MY OWN MESSAGES FROM SERVER ECHO
       if (d.senderName === ME && d.type !== 'join_ack' && d.type !== 'mute_force') return;
-
       if (d.senderName && sid) pNames[sid] = d.senderName;
 
       switch (d.type) {
@@ -1239,7 +1242,7 @@ function connectWebSocket() {
             return;
 
         case 'join':
-          if (!sid || sid === ME) return; // FIX: Prevent joining yourself
+          if (!sid || sid === ME) return;
           setTimeout(() => {
             createPC(sid, true);
             toast(`${d.senderName || 'Participant'} joined`, "fa-solid fa-user-plus", "var(--success)");
@@ -1281,9 +1284,7 @@ function connectWebSocket() {
         case 'leave':
           if (!sid) return;
           const name = pNames[sid] || 'Participant';
-          
           removePeer(sid);
-          
           toast(`${name} left`, "fa-solid fa-user-minus", "var(--danger)");
           if (joinSounds) playTone(440, 0.06, 0.15);
           updateCount(); refreshParts(); optimizeForScaleDebounced();
@@ -1296,6 +1297,10 @@ function connectWebSocket() {
           }
           return;
           
+        case 'chat_delete':
+          if (d.msgId) markDeleted(d.msgId);
+          return;
+
         case 'poll_create':
           handlePollCreate(d);
           if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
@@ -1311,9 +1316,10 @@ function connectWebSocket() {
 // ── MEDIA INIT ──
 async function initMedia() {
   try {
+    // 🔴 FIX: Stripped strict constraints for mobile to guarantee camera success
     const constraints = isMobileDevice 
-        ? { video: { facingMode: "user", width: { ideal: 480 }, frameRate: { ideal: 15 } }, audio: { echoCancellation: true, noiseSuppression: true } }
-        : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
+        ? { video: { facingMode: "user" }, audio: true }
+        : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: true };
     
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     
@@ -1365,7 +1371,6 @@ function tryJoin() {
     document.querySelector('#netBadge span').textContent = 'Connected';
     toast(`Welcome, ${ME}!`, "fa-solid fa-sparkles", "var(--primary)");
     
-    // Add tracks if peers already exist
     for(const pid in peers) { 
         if (stream) stream.getTracks().forEach(t => {
             if(!peers[pid].getSenders().find(s => s.track === t)) peers[pid].addTrack(t, stream);
@@ -1524,7 +1529,6 @@ function createPC(pid, initiator) {
   pc.ontrack = e => {
     let tile = document.getElementById(`t-${pid}`);
     
-    // Add tile with blank stream if it doesn't exist yet
     if (!tile) {
         addTile(pid, new MediaStream());
         tile = document.getElementById(`t-${pid}`);
@@ -1532,10 +1536,9 @@ function createPC(pid, initiator) {
     
     let vid = tile.querySelector('video');
     if (vid) {
-        // Guarantee srcObject exists, then strictly add the new track
         if (!vid.srcObject) vid.srcObject = new MediaStream();
         vid.srcObject.addTrack(e.track);
-        vid.play().catch(err => console.warn("Auto-play prevented", err));
+        vid.onloadedmetadata = () => { vid.play().catch(err => console.warn(err)); }; // Mobile fallback force play
     }
     
     if(e.track.kind === 'audio') {
@@ -1545,7 +1548,6 @@ function createPC(pid, initiator) {
     updateCount(); refreshParts();
   };
 
-  // 🔴 INSTANT HATAO BUG FIX: Detect Connection Failure instantly
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     if (state === 'failed' || state === 'disconnected' || state === 'closed') {
@@ -1611,7 +1613,6 @@ function addTile(pid, s) {
   tile.append(vid, lbl, hand, pin, sig, vol);
   stage.appendChild(tile);
 
-  // Instantly pop in
   tile.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
   tile.style.opacity = '1'; 
   tile.style.transform = 'scale(1)';
@@ -1628,7 +1629,6 @@ function removePeer(pid) {
   delete pStats[pid];
   const t = document.getElementById(`t-${pid}`);
   if (t) {
-    // Drop the tile out instantly
     t.style.transition = 'opacity 0.1s ease, transform 0.1s ease-out';
     t.style.opacity = '0'; 
     t.style.transform = 'scale(0.9)';
@@ -1722,7 +1722,12 @@ function pRow(name, isMe, mic, cam) {
 }
 
 // ── PANELS ──
+let isToggling = false; // 🔴 FIX: Debounce locking to prevent spam clicks and grid vibration
 function togglePanel(name) {
+  if (isToggling) return;
+  isToggling = true;
+  setTimeout(() => isToggling = false, 350);
+
   const panels = { c: 'chatPanel', p: 'partsPanel', s: 'settingsPanel' };
   const stage = document.getElementById('stage');
 
@@ -1771,7 +1776,8 @@ function showTypingIndicator(name) {
 
 function sendChat() {
   const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
-  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg };
+  const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg, msgId: msgId };
   appendMsg(ME, msgObj, true);
   safeSend(msgObj);
   el.value = '';
@@ -1791,6 +1797,7 @@ function handleFileSelect(input) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const base64 = e.target.result;
+            const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
             const msgObj = {
                 type: 'chat',
                 roomId: ROOM,
@@ -1798,7 +1805,8 @@ function handleFileSelect(input) {
                 message: file.name,
                 isFile: true,
                 fileData: base64,
-                fileType: file.type
+                fileType: file.type,
+                msgId: msgId
             };
             safeSend(msgObj);
             appendMsg(ME, msgObj, true);
@@ -1808,12 +1816,34 @@ function handleFileSelect(input) {
     }
 }
 
+// ── 🔴 MESSAGE DELETION ENGINE ──
+window.delMsg = function(msgId, type) {
+    if (type === 'everyone') {
+        safeSend({ type: 'chat_delete', roomId: ROOM, msgId: msgId, senderName: ME });
+        markDeleted(msgId);
+    } else {
+        markDeleted(msgId);
+    }
+};
+
+function markDeleted(msgId) {
+    const el = document.getElementById(msgId);
+    if (el) {
+        el.innerHTML = `<i class="fa-solid fa-ban" style="margin-right:6px;"></i><span class="deleted-msg">This message was deleted</span>`;
+        el.className = 'cmsg'; 
+        el.style.background = 'transparent';
+        el.style.border = '1px solid rgba(255,255,255,0.05)';
+        el.style.color = 'var(--text-dim)';
+    }
+}
+
 function appendMsg(sender, data, isMe) {
   const c = document.getElementById('chatList');
   let isGrouped = false;
   let classes = `cmsg ${isMe ? 'me' : ''}`;
   
   const text = typeof data === 'string' ? data : data.message;
+  const msgId = typeof data === 'object' && data.msgId ? data.msgId : 'msg_local_' + Date.now() + Math.random().toString(36).substr(2,5);
   
   const children = Array.from(c.children);
   let lastMsgGroup = null;
@@ -1854,17 +1884,31 @@ function appendMsg(sender, data, isMe) {
       }
   }
 
+  // Action Menu
+  const actMenu = `
+      <div class="msg-act">
+        <button class="m-btn" onclick="delMsg('${msgId}', 'me')">Delete for me</button>
+        ${isMe ? `<button class="m-btn red" onclick="delMsg('${msgId}', 'everyone')">Delete for everyone</button>` : ''}
+      </div>
+  `;
+
   if(isGrouped) {
       const msgDiv = document.createElement('div');
       msgDiv.className = classes;
-      msgDiv.innerHTML = `${contentHtml} <span class="cmsg-time">${now}</span>`;
+      msgDiv.id = msgId;
+      msgDiv.innerHTML = `${contentHtml} <span class="cmsg-time">${now}</span> ${actMenu}`;
       lastMsgGroup.appendChild(msgDiv);
   } else {
       const group = document.createElement('div');
       group.className = `cmsg-group ${isMe ? 'me' : ''}`;
-      group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>
-        <div class="${classes}">${contentHtml} <span class="cmsg-time">${now}</span></div>`;
+      group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>`;
       
+      const msgDiv = document.createElement('div');
+      msgDiv.className = classes;
+      msgDiv.id = msgId;
+      msgDiv.innerHTML = `${contentHtml} <span class="cmsg-time">${now}</span> ${actMenu}`;
+      
+      group.appendChild(msgDiv);
       if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
   }
   c.scrollTop = c.scrollHeight;
@@ -1985,7 +2029,7 @@ async function toggleCam() {
   if (!track) {
       try {
           const constraints = isMobileDevice 
-            ? { video: { facingMode: "user", width: { ideal: 480 } } } 
+            ? { video: { facingMode: "user" } } 
             : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
@@ -2275,7 +2319,7 @@ window.addEventListener('beforeunload', onBU);
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && isMobileDevice) {
-        if(wsOk) safeSend({ type: 'ping' });
+        if(wsOk && !isLeaving) safeSend({ type: 'ping' });
     }
 });
 
