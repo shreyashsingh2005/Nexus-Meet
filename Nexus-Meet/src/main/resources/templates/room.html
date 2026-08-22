@@ -1215,6 +1215,9 @@ let autoHideTimer = null, optimizeTimeout = null, typingTimeoutSend = null, typi
 let audioUnlocked = false, gestureBound = false;
 let mediaRecorder = null, recChunks = [], recCtx = null, recDest = null, recStart = 0, recTimer = null;
 let unread = 0;
+/* camera hardening: serialise every getUserMedia so overlapping calls can't
+   deadlock the mobile camera, and track whether a recovery is already running */
+let gettingMedia = false, camRecovering = false, camWatchdog = null;
 const pendingPlay = [];
 
 /* ── TINY HELPERS ───────────────────────────────────── */
@@ -1353,6 +1356,24 @@ function videoConstraints() {
 function showMediaHint(txt) { $('mediaHintTxt').textContent = txt; $('mediaHint').classList.add('show'); }
 function hideMediaHint() { $('mediaHint').classList.remove('show'); }
 
+/* FIX (phone camera "sometimes doesn't work"): mobile cameras are a single
+   shared resource. If two getUserMedia calls overlap (e.g. initMedia still
+   running while the user taps flip/toggle, or a device-change event fires),
+   the second one throws NotReadableError/AbortError and the camera goes black.
+   gum() serialises EVERY capture request through one promise chain so they
+   can never race. */
+let _gumChain = Promise.resolve();
+function gum(constraints) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return Promise.reject(new Error('getUserMedia unsupported'));
+  }
+  const run = function () { return navigator.mediaDevices.getUserMedia(constraints); };
+  const p = _gumChain.then(run, run);
+  _gumChain = p.then(function () {}, function () {});   /* keep chain alive on failure */
+  return p;
+}
+function stopStream(s) { if (s) { try { s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} } }
+
 async function initMedia() {
   /* getUserMedia only exists on secure origins — the #1 silent failure when
      a phone opens the room over plain http://<lan-ip> */
@@ -1378,8 +1399,8 @@ async function initMedia() {
 
   for (let i = 0; i < attempts.length; i++) {
     try {
-      stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
-      if (stream) break;
+      const s = await gum(attempts[i]);
+      if (s) { stopStream(stream); stream = s; break; }   /* release any earlier partial capture */
     } catch (err) {
       console.warn('getUserMedia attempt ' + (i + 1) + ' failed:', err && err.name, err && err.message);
       if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
@@ -1389,6 +1410,7 @@ async function initMedia() {
     }
   }
   applyLocalStream();
+  watchCameraTracks();
 }
 function applyLocalStream() {
   const lv = $('lv');
@@ -1448,6 +1470,70 @@ function replaceOrAddTrack(track) {
   });
 }
 
+/* ════════════ MOBILE CAMERA RECOVERY ════════════
+   THE "phone cam sometimes not working" fix. On phones the camera track
+   silently goes to readyState 'ended' whenever: the screen locks, the user
+   switches apps, an incoming call grabs the camera, or the browser reclaims
+   the sensor to save power. WebRTC never re-acquires on its own, so the tile
+   turns black and stays black even though camOff is false. We watch the live
+   track and, when it dies while the camera is supposed to be on, quietly grab
+   a fresh one and replaceTrack() it into every peer (no renegotiation). */
+function watchCameraTracks() {
+  const vt = stream && stream.getVideoTracks()[0];
+  if (!vt) return;
+  vt.onended = function () {
+    if (!camOff && !sharing) { console.warn('camera track ended — recovering'); recoverCamera('track ended'); }
+  };
+  /* some Android builds fire mute (not ended) when the app backgrounds */
+  vt.onmute = function () {
+    setTimeout(function () {
+      const t = stream && stream.getVideoTracks()[0];
+      if (!camOff && !sharing && t && t.muted && document.visibilityState === 'visible') recoverCamera('track muted');
+    }, 1500);
+  };
+}
+
+async function recoverCamera(reason) {
+  if (camRecovering || camOff || sharing || gettingMedia) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  camRecovering = true; gettingMedia = true;
+  try {
+    /* drop the dead track first so the OS fully releases the sensor */
+    if (stream) {
+      const dead = stream.getVideoTracks()[0];
+      if (dead) { try { stream.removeTrack(dead); dead.stop(); } catch (e) {} }
+    }
+    let fresh = null;
+    for (let i = 0; i < 3 && !fresh; i++) {
+      try { fresh = await gum({ video: isMobileDevice ? { facingMode: facing } : videoConstraints(), audio: false }); }
+      catch (e) { await new Promise(function (r) { setTimeout(r, 400); }); }
+    }
+    const nt = fresh && fresh.getVideoTracks()[0];
+    if (!nt) { camRecovering = false; gettingMedia = false; return; }
+    if (!stream) stream = new MediaStream();
+    stream.addTrack(nt);
+    const lv = $('lv'); if (lv) { lv.srcObject = stream; safePlay(lv); }
+    replaceOrAddTrack(nt);
+    camOff = false; syncCamUI(); updateLocalTileState();
+    watchCameraTracks();
+    optimizeForScale();
+    broadcastMediaState(); refreshParts();
+    console.info('camera recovered (' + (reason || '') + ')');
+  } catch (e) { console.warn('camera recovery failed', e); }
+  finally { camRecovering = false; gettingMedia = false; }
+}
+
+/* When the phone comes back to the foreground, verify the camera is actually
+   alive; re-acquire if the OS killed it while we were backgrounded. */
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState !== 'visible') return;
+  const vt = stream && stream.getVideoTracks()[0];
+  if (!camOff && !sharing && (!vt || vt.readyState === 'ended')) recoverCamera('returned to foreground');
+  else if (vt) { const lv = $('lv'); if (lv) safePlay(lv); }
+  /* also nudge every remote video that the OS may have paused */
+  document.querySelectorAll('#stage video').forEach(function (v) { if (v.paused) v.play().catch(function () {}); });
+});
+
 /* ── DEVICE PICKERS ─────────────────────────────────── */
 async function enumerateDevices() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
@@ -1481,14 +1567,14 @@ async function switchDevice(kind, deviceId) {
     const c = kind === 'video'
       ? { video: { deviceId: { exact: deviceId } }, audio: false }
       : { audio: Object.assign({ deviceId: { exact: deviceId } }, audioConstraints()), video: false };
-    const fresh = await navigator.mediaDevices.getUserMedia(c);
+    const fresh = await gum(c);
     const nt = kind === 'video' ? fresh.getVideoTracks()[0] : fresh.getAudioTracks()[0];
-    if (!nt) return;
+    if (!nt) { stopStream(fresh); return; }
     if (!stream) stream = new MediaStream();
     const old = kind === 'video' ? stream.getVideoTracks()[0] : stream.getAudioTracks()[0];
     if (old) { stream.removeTrack(old); old.stop(); }
     stream.addTrack(nt);
-    if (kind === 'video') { $('lv').srcObject = stream; $('lv').play().catch(function () {}); camOff = false; syncCamUI(); $('localNoCam').classList.remove('show'); }
+    if (kind === 'video') { $('lv').srcObject = stream; $('lv').play().catch(function () {}); camOff = false; syncCamUI(); $('localNoCam').classList.remove('show'); watchCameraTracks(); }
     else { nt.enabled = !micMuted; }
     if (!sharing || kind === 'audio') replaceOrAddTrack(nt);
     if (kind === 'audio') { teardownLocalViz(); setupLocalViz(); }
@@ -1499,11 +1585,14 @@ async function switchDevice(kind, deviceId) {
 
 async function flipCamera() {
   if (!navigator.mediaDevices) return;
+  if (gettingMedia) return;                         /* ignore double-taps while switching */
+  gettingMedia = true;
+  const prev = facing;
   facing = (facing === 'user') ? 'environment' : 'user';
   try {
-    const fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: false });
+    const fresh = await gum({ video: { facingMode: { ideal: facing } }, audio: false });
     const nt = fresh.getVideoTracks()[0];
-    if (!nt) return;
+    if (!nt) { stopStream(fresh); facing = prev; return; }
     if (!stream) stream = new MediaStream();
     const old = stream.getVideoTracks()[0];
     if (old) { stream.removeTrack(old); old.stop(); }
@@ -1514,9 +1603,11 @@ async function flipCamera() {
     $('lv').style.transform = mirrorSelf ? 'scaleX(-1)' : 'none';
     camOff = false; syncCamUI(); $('localNoCam').classList.remove('show');
     if (!sharing) replaceOrAddTrack(nt);
+    watchCameraTracks();
     broadcastMediaState();
     toast(facing === 'user' ? 'Front camera' : 'Back camera', 'fa-solid fa-camera-rotate', 'var(--primary)');
-  } catch (e) { toast('Camera flip not available', 'fa-solid fa-circle-exclamation', 'var(--warning)'); }
+  } catch (e) { facing = prev; toast('Camera flip not available', 'fa-solid fa-circle-exclamation', 'var(--warning)'); }
+  finally { gettingMedia = false; }
 }
 /* ── SIGNALLING ─────────────────────────────────────── */
 const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/signal';
@@ -1842,6 +1933,10 @@ function attachLocalMedia(pc) {
     try { pc.addTransceiver('audio', { direction: 'recvonly' }); } catch (e) {}
     try { pc.addTransceiver('video', { direction: 'recvonly' }); } catch (e) {}
   }
+  /* Cap the encoder for this brand-new peer straight away. In a 50+ room we
+     must NOT briefly send full-resolution video to every peer or a phone's
+     encoder stalls before optimizeForScale has a chance to run. */
+  applyLimitsToPc(pc, computeScale(peerCount()));
 }
 
 async function makeOffer(pid) {
@@ -2750,19 +2845,27 @@ function toggleMic() {
 }
 async function toggleCam() {
   let track = stream && stream.getVideoTracks()[0];
-  if (!track) {
-    /* camera was never granted — try to acquire it now */
+  /* FIX: treat an ended/dead track (screen was locked, app was backgrounded,
+     another app grabbed the camera) the same as "no camera" and re-acquire,
+     instead of toggling .enabled on a track that will never produce frames. */
+  if (!track || track.readyState === 'ended') {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Camera needs HTTPS', 'fa-solid fa-triangle-exclamation', 'var(--danger)'); return; }
+    if (gettingMedia) return;
+    gettingMedia = true;
     try {
-      const fresh = await navigator.mediaDevices.getUserMedia({ video: isMobileDevice ? { facingMode: facing } : true });
+      if (track) { try { stream.removeTrack(track); track.stop(); } catch (e) {} }
+      const fresh = await gum({ video: isMobileDevice ? { facingMode: facing } : videoConstraints(), audio: false });
       const nt = fresh.getVideoTracks()[0];
+      if (!nt) { stopStream(fresh); toast('Could not start camera', 'fa-solid fa-video-slash', 'var(--danger)'); return; }
       if (!stream) stream = new MediaStream();
       stream.addTrack(nt);
       replaceOrAddTrack(nt);
       const lv = $('lv'); if (lv) { lv.srcObject = stream; safePlay(lv); }
       camOff = false; syncCamUI(); updateLocalTileState(); broadcastMediaState(); refreshParts();
-      setupLocalViz();
+      watchCameraTracks();
+      optimizeForScale();
     } catch (e) { toast('Could not start camera', 'fa-solid fa-video-slash', 'var(--danger)'); }
+    finally { gettingMedia = false; }
     return;
   }
   camOff = !camOff; track.enabled = !camOff;
@@ -2972,28 +3075,39 @@ function resetAutoHide() { if (!autoHide) return; showChrome(); scheduleHide(); 
 
 /* ═══════════ ADAPTIVE QUALITY ═══════════ */
 function optimizeForScaleDebounced() { clearTimeout(optimizeTimeout); optimizeTimeout = setTimeout(optimizeForScale, 1200); }
-function optimizeForScale() {
-  const n = peerCount();
+
+/* Compute per-peer send limits for the current room size. In a mesh every
+   participant encodes and uploads a separate stream to every other peer, so a
+   50-person room means ~50 simultaneous encoders. Without hard caps a phone
+   simply cannot keep up and its camera/encoder stalls (black video for
+   everyone). These caps keep a 50+ room alive on mobile hardware. */
+function computeScale(n) {
   let scaleDown = 1, maxBitrate = isMobileDevice ? 350000 : 900000, maxFps = isMobileDevice ? 24 : 30;
-  if (n > 40) { scaleDown = 4; maxBitrate = 40000; maxFps = 10; }
-  else if (n > 25) { scaleDown = 3; maxBitrate = 60000; maxFps = 12; }
-  else if (n > 15) { scaleDown = 2; maxBitrate = 100000; maxFps = 15; }
-  else if (n > 8) { scaleDown = 1.5; maxBitrate = isMobileDevice ? 150000 : 250000; maxFps = 15; }
-  else if (n > 4) { scaleDown = 1; maxBitrate = isMobileDevice ? 250000 : 500000; maxFps = isMobileDevice ? 20 : 24; }
-  Object.keys(P).forEach(function (pid) {
-    const pc = P[pid].pc; if (!pc) return;
-    pc.getSenders().forEach(function (s) {
-      if (!s.track || s.track.kind !== 'video' || !s.getParameters) return;
-      try {
-        const params = s.getParameters();
-        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
-        params.encodings[0].maxBitrate = maxBitrate;
-        params.encodings[0].scaleResolutionDownBy = scaleDown;
-        params.encodings[0].maxFramerate = maxFps;
-        s.setParameters(params).catch(function () {});
-      } catch (e) {}
-    });
+  if (n > 40) { scaleDown = 4; maxBitrate = 40000; maxFps = 8; }
+  else if (n > 25) { scaleDown = 3; maxBitrate = 60000; maxFps = 10; }
+  else if (n > 15) { scaleDown = 2.5; maxBitrate = 90000; maxFps = 12; }
+  else if (n > 8) { scaleDown = isMobileDevice ? 2 : 1.5; maxBitrate = isMobileDevice ? 130000 : 250000; maxFps = 15; }
+  else if (n > 4) { scaleDown = isMobileDevice ? 1.5 : 1; maxBitrate = isMobileDevice ? 220000 : 500000; maxFps = isMobileDevice ? 20 : 24; }
+  return { scaleDown: scaleDown, maxBitrate: maxBitrate, maxFps: maxFps };
+}
+function applyLimitsToPc(pc, lim) {
+  if (!pc) return;
+  pc.getSenders().forEach(function (s) {
+    if (!s.track || s.track.kind !== 'video' || !s.getParameters) return;
+    try {
+      const params = s.getParameters();
+      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      params.encodings[0].maxBitrate = lim.maxBitrate;
+      params.encodings[0].scaleResolutionDownBy = lim.scaleDown;
+      params.encodings[0].maxFramerate = lim.maxFps;
+      if (params.degradationPreference !== undefined) params.degradationPreference = 'balanced';
+      s.setParameters(params).catch(function () {});
+    } catch (e) {}
   });
+}
+function optimizeForScale() {
+  const lim = computeScale(peerCount());
+  Object.keys(P).forEach(function (pid) { applyLimitsToPc(P[pid].pc, lim); });
 }
 /* ═══════════ RECORDING (real, was a fake toast before) ═══════════ */
 function pickRecMime() {
