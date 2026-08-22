@@ -1180,16 +1180,33 @@ const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.maxTouchPoints > 1 && /M
    STUN only. Mobile carriers use symmetric/CGNAT, which STUN cannot
    traverse, so media never flowed. TURN relays are required.
    Replace the openrelay credentials with your own TURN for production. */
+/* ── ICE / TURN ─────────────────────────────────────────
+   A black remote tile with the badge stuck on "Connecting…" almost always
+   means ICE could not find a working path and TURN relay failed. Free demo
+   TURN hosts get rate-limited / retired, so we list several endpoints for
+   redundancy: if one relay is dead, the browser falls through to the next.
+
+   >>> FOR PRODUCTION / 50+ PEOPLE: get your own free TURN key (metered.ca gives
+       20GB/mo free) and paste the credentials below — a dedicated relay is the
+       single biggest reliability win for participants on mobile / strict NATs. */
 const ICE = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
     { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    /* current OpenRelay static-auth host (the old openrelay.metered.ca host is being retired) */
+    { urls: 'turn:staticauth.openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:staticauth.openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:staticauth.openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turns:staticauth.openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+    /* legacy host kept as an extra fallback in case it still answers */
     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    /* , { urls: 'turn:YOUR_HOST:3478', username: 'YOUR_USER', credential: 'YOUR_SECRET' } */
   ],
-  iceCandidatePoolSize: 2,
+  iceCandidatePoolSize: 4,
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require'
 };
@@ -2094,7 +2111,18 @@ function onRemoteTrack(pid, e) {
   }
 
   const vid = tile.querySelector('video');
-  if (vid && vid.srcObject !== rec.stream) { vid.srcObject = rec.stream; safePlay(vid); }
+  if (vid && vid.srcObject !== rec.stream) {
+    vid.srcObject = rec.stream;
+    safePlay(vid);
+    /* re-evaluate the tile the instant real frames start painting so a
+       stuck-`muted` remote track can't leave us on a black avatar */
+    if (!vid._tileHooked) {
+      vid._tileHooked = true;
+      ['loadedmetadata', 'resize', 'playing'].forEach(function (ev) {
+        vid.addEventListener(ev, function () { updateTileState(pid); });
+      });
+    }
+  }
 
   /* Audio goes to its own element so the video element can stay muted. */
   const aTracks = rec.stream.getAudioTracks();
@@ -2253,18 +2281,32 @@ function updateTileState(pid) {
   const rec = P[pid];
   const t = document.getElementById('t-' + pid); if (!t) return;
 
-  /* video considered live only when a video track is present and unmuted */
+  /* Decide whether to show the <video> or the name-card/avatar.
+     A remote track can stay flagged `.muted` on some mobile browsers even
+     while frames are actually flowing, which used to leave the tile stuck on
+     the avatar (the "black display" bug). So we treat video as present when
+     EITHER the track is live & unmuted, OR the element is already painting
+     frames (videoWidth>0), OR the sender says their cam is on and the peer
+     connection is up. The sender's explicit cam-off state still wins. */
+  const v = document.getElementById('v-' + pid);
   let hasVideo = false;
+  let liveTrack = false;
   if (rec && rec.stream) {
-    rec.stream.getVideoTracks().forEach(function (v) {
-      if (v.readyState === 'live' && !v.muted) hasVideo = true;
+    rec.stream.getVideoTracks().forEach(function (vt) {
+      if (vt.readyState === 'live') {
+        liveTrack = true;
+        if (!vt.muted) hasVideo = true;
+      }
     });
   }
+  if (v && v.videoWidth > 0 && v.videoHeight > 0) hasVideo = true;
+  const connected = rec && rec.pc && (rec.pc.connectionState === 'connected' ||
+                    rec.pc.iceConnectionState === 'connected' || rec.pc.iceConnectionState === 'completed');
+  if (!hasVideo && liveTrack && connected && st.camOn !== false) hasVideo = true;
   if (st.camOn === false && !st.sharing) hasVideo = false;
 
   const nc = document.getElementById('nc-' + pid);
   if (nc) nc.classList.toggle('show', !hasVideo);
-  const v = document.getElementById('v-' + pid);
   if (v) v.style.opacity = hasVideo ? '1' : '0';
 
   const md = document.getElementById('mic-' + pid);
@@ -3198,9 +3240,15 @@ async function collectStats() {
   const pids = Object.keys(P);
   if (!pids.length) { setNet('good', joined ? 'Connected' : 'Connecting…'); return; }
   let totalOutKbps = 0, res = '—', fps = '—', lossPct = 0, rttMs = null, transport = '—', samples = 0;
+  let anyConnected = false, anyConnecting = false;
 
   for (let i = 0; i < pids.length; i++) {
     const pc = P[pids[i]].pc; if (!pc || !pc.getStats) continue;
+    /* Trust the peer-connection state so the badge doesn't get stuck on
+       "Connecting…" on browsers that never report candidate-pair RTT. */
+    const cs = pc.connectionState || pc.iceConnectionState;
+    if (cs === 'connected' || cs === 'completed') anyConnected = true;
+    else if (cs === 'new' || cs === 'checking' || cs === 'connecting') anyConnecting = true;
     try {
       const report = await pc.getStats();
       const prev = pStats[pids[i]] || {};
@@ -3239,8 +3287,12 @@ async function collectStats() {
     $('statTransport').textContent = transport;
   }
 
-  /* header quality badge from RTT + loss */
-  if (rttMs == null && !samples) { setNet('fair', 'Connecting…'); }
+  /* header quality badge — driven by real connection state first, then RTT/loss */
+  if (rttMs == null && !samples) {
+    if (anyConnected) setNet('good', 'Connected');
+    else if (anyConnecting) setNet('fair', 'Connecting…');
+    else setNet('poor', 'Reconnecting…');
+  }
   else if (lossPct > 8 || (rttMs != null && rttMs > 400)) setNet('poor', 'Weak connection');
   else if (lossPct > 3 || (rttMs != null && rttMs > 200)) setNet('fair', 'Fair connection');
   else setNet('good', 'Connected');
@@ -3300,26 +3352,50 @@ function toggleFullscreen() {
 }
 
 /* ═══════════ LEAVE HANDLING ═══════════
-   FIX: the original wired BOTH a beforeunload leave-sender AND a confirm
+   FIX 1: the original wired BOTH a beforeunload leave-sender AND a confirm
    dialog. Cancelling the "Leave meeting?" prompt still fired the leave, so
    the socket died and you showed up as a ghost. Leave is now sent only from
-   pagehide / unload (which fire only when the page is really going away). */
-function sendLeaveSync() {
-  if (isLeaving) return;
-  isLeaving = true;
-  const payload = JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME });
+   pagehide / unload (which fire only when the page is really going away).
+
+   FIX 2 (the "~10s to leave" bug): the old code called ws.close() in the same
+   tick as ws.send(leave), so the browser often dropped the buffered "leave"
+   frame before it flushed. Remote peers then had to wait out the full ICE
+   recovery ladder (~6-10s) before the ghost tile disappeared. Now we:
+     • stamp the leave with our own id (sender:MY_ID) so recipients always
+       know exactly who left (works even if the server doesn't inject it),
+     • send it a couple of times,
+     • close our RTCPeerConnections immediately so the remote's ICE drops
+       fast even if the message is somehow lost, and
+     • defer ws.close() by a few hundred ms so the frame actually flushes. */
+function leavePayload() {
+  return JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME, sender: MY_ID || undefined });
+}
+function announceLeave() {
+  const payload = leavePayload();
   try {
-    if (navigator.sendBeacon && window._leaveUrl) {
-      navigator.sendBeacon(window._leaveUrl, payload);
+    if (navigator.sendBeacon && window._leaveUrl) { navigator.sendBeacon(window._leaveUrl, payload); }
+  } catch (e) {}
+  try {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(payload);
+      /* a second nudge shortly after in case the first frame is lost */
+      setTimeout(function () { try { if (ws && ws.readyState === WebSocket.OPEN) ws.send(payload); } catch (e) {} }, 120);
     }
   } catch (e) {}
-  try { if (ws && ws.readyState === WebSocket.OPEN) ws.send(payload); } catch (e) {}
-  teardownAll();
 }
-function teardownAll() {
+function closePeersNow() {
   Object.keys(P).forEach(function (pid) {
     try { if (P[pid].pc) P[pid].pc.close(); } catch (e) {}
   });
+}
+function sendLeaveSync() {
+  if (isLeaving) return;
+  isLeaving = true;
+  announceLeave();
+  teardownAll();
+}
+function teardownAll() {
+  closePeersNow();
   try { if (ws) { ws.onclose = null; ws.close(); } } catch (e) {}
   try { if (recording) stopRecording(); } catch (e) {}
 }
@@ -3337,7 +3413,14 @@ window.addEventListener('beforeunload', onBU);
 
 function endCall() {
   window.removeEventListener('beforeunload', onBU);
-  sendLeaveSync();
+  if (isLeaving) return;
+  isLeaving = true;
+  /* 1) tell everyone we're leaving, 2) kill our peer connections right away so
+     the other side sees the transport drop instantly, 3) THEN show the overlay
+     and defer the socket close so the leave frame has time to flush. */
+  announceLeave();
+  closePeersNow();
+  try { if (recording) stopRecording(); } catch (e) {}
   document.body.innerHTML =
     '<div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Inter,sans-serif;">' +
       '<i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>' +
@@ -3346,8 +3429,9 @@ function endCall() {
   setTimeout(function () {
     try { if (aCtx) aCtx.close(); } catch (e) {}
     Object.keys(pAudio).forEach(function (id) { try { pAudio[id].ctx && pAudio[id].ctx.close && 0; } catch (e) {} });
+    try { if (ws) { ws.onclose = null; ws.close(); } } catch (e) {}
     window.location.href = '/dashboard';
-  }, 250);
+  }, 450);
 }
 /*]]>*/
 </script>
