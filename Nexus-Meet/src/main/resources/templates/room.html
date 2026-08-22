@@ -343,16 +343,25 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 }
 .pnl-hdr h3 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .pnl-hdr h3 i { color: var(--primary); font-size: 0.95rem; }
+.pnl-hdr-actions { display: flex; align-items: center; gap: 8px; }
 .pnl-x {
   background: var(--glass); border: 1px solid var(--border-light); color: var(--text-sub);
   cursor: pointer; width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; transition: var(--transition-med);
 }
 .pnl-x:hover { background: var(--glass-active); color: #fff; transform: rotate(90deg); }
+.pnl-clear {
+  background: var(--glass); border: 1px solid var(--border-light); color: var(--text-sub);
+  cursor: pointer; height: 34px; padding: 0 14px; border-radius: 20px; font-size: 0.75rem;
+  font-weight: 600; display: flex; align-items: center; gap: 6px; transition: var(--transition-med);
+  font-family: inherit;
+}
+.pnl-clear:hover { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.3); }
 
 /* Chat Advanced Update */
 .chat-list { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .cmsg {
+  position: relative;
   background: var(--glass); border: 1px solid rgba(255,255,255,0.04);
   padding: 10px 14px; border-radius: 14px; font-size: 0.88rem;
   max-width: 85%; align-self: flex-start;
@@ -375,6 +384,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .cm-body { color: var(--text-main); line-height: 1.55; word-break: break-word; }
 .cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
 .cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
+
+/* Delete-message button — only rendered on the sender's own bubbles */
+.msg-del-btn {
+  position: absolute; top: -8px; right: -8px; width: 22px; height: 22px;
+  border-radius: 50%; background: rgba(15,15,20,0.95); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-sub); font-size: 0.6rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: var(--transition-fast); z-index: 5;
+}
+.cmsg:hover .msg-del-btn { opacity: 1; }
+.msg-del-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); transform: scale(1.1); }
 
 /* ── SMART CHAT & POLLS ── */
 .chat-file-preview { margin-top: 6px; border-radius: 8px; overflow: hidden; max-width: 100%; border: 1px solid rgba(255,255,255,0.1); }
@@ -852,7 +872,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 <div class="panel" id="chatPanel">
   <div class="pnl-hdr">
     <h3><i class="fa-solid fa-message"></i> Messages</h3>
-    <button class="pnl-x" onclick="togglePanel('c')"><i class="fa-solid fa-xmark"></i></button>
+    <div class="pnl-hdr-actions">
+      <button class="pnl-clear" onclick="clearChatView()" title="Clear chat view (only clears it for you)"><i class="fa-solid fa-broom"></i> Clear</button>
+      <button class="pnl-x" onclick="togglePanel('c')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
   </div>
   <div class="chat-list" id="chatList">
     <div class="cmsg sys">
@@ -1145,21 +1168,79 @@ document.addEventListener('DOMContentLoaded', () => {
   startApp();
 });
 
-// ── INSTANT DISCONNECT HANDLING (TAB CLOSE / CUT / RELOAD) ──
+// ── LEAVE NOTIFICATION (TAB CLOSE / RELOAD) ──
+// NOTE: we intentionally do NOT stop the camera/mic tracks or close the
+// RTCPeerConnections here. Mobile browsers (iOS Safari, Android Chrome)
+// fire 'pagehide' / 'visibilitychange' just from backgrounding the tab —
+// switching apps, locking the screen, swiping up — the page is NOT actually
+// closing, it is being frozen/suspended and will resume. Killing the camera
+// here (as the previous version did) permanently broke the local video on
+// phones, because a stopped MediaStreamTrack cannot be restarted — it has
+// to be re-acquired with getUserMedia(), and nothing was doing that on
+// resume. Real teardown only happens in endCall(), the explicit "Leave"
+// button, further down.
 function sendLeaveSync() {
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
-        // Force closing the socket guarantees the backend instantly triggers its 'disconnect' routine
-        ws.close(); 
+        try { ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME })); } catch(e) {}
     }
-    // Instant 0 second kill
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-    for (let pid in peers) { if (peers[pid]) peers[pid].close(); }
 }
+window.addEventListener('pagehide', (e) => { if (!e.persisted) sendLeaveSync(); });
 window.addEventListener('beforeunload', sendLeaveSync);
-window.addEventListener('pagehide', sendLeaveSync);
-window.addEventListener('unload', sendLeaveSync);
+
+// ── MOBILE CAMERA SELF-HEALING ──
+// If the OS actually does kill the camera/mic track while backgrounded
+// (common on lower-memory Android devices), reacquire it automatically once
+// the tab is visible/foregrounded again instead of leaving a frozen tile.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) recoverMediaIfNeeded();
+});
+window.addEventListener('pageshow', () => recoverMediaIfNeeded());
+
+function attachEndedHandlers(s) {
+  if (!s) return;
+  s.getTracks().forEach(t => { t.onended = () => recoverMediaIfNeeded(); });
+}
+
+async function recoverMediaIfNeeded() {
+  if (!stream) return;
+  const vt = stream.getVideoTracks()[0];
+  const at = stream.getAudioTracks()[0];
+  const needsVideo = !!vt && vt.readyState === 'ended' && !camOff;
+  const needsAudio = !!at && at.readyState === 'ended';
+  if (!needsVideo && !needsAudio) return;
+  try {
+    const constraints = isMobileDevice
+      ? { video: needsVideo ? { facingMode: "user", width: { ideal: 480 }, frameRate: { ideal: 15 } } : false,
+          audio: needsAudio ? { echoCancellation: true, noiseSuppression: true } : false }
+      : { video: needsVideo, audio: needsAudio };
+    const fresh = await navigator.mediaDevices.getUserMedia(constraints);
+    if (needsVideo) {
+      const newTrack = fresh.getVideoTracks()[0];
+      if (vt) stream.removeTrack(vt);
+      stream.addTrack(newTrack);
+      document.getElementById('lv').srcObject = stream;
+      for (const pid in peers) {
+        const sender = peers[pid].getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(newTrack);
+      }
+      newTrack.onended = () => recoverMediaIfNeeded();
+    }
+    if (needsAudio) {
+      const newATrack = fresh.getAudioTracks()[0];
+      if (at) stream.removeTrack(at);
+      stream.addTrack(newATrack);
+      newATrack.enabled = !micMuted;
+      for (const pid in peers) {
+        const sender = peers[pid].getSenders().find(s => s.track?.kind === 'audio');
+        if (sender) sender.replaceTrack(newATrack);
+      }
+      newATrack.onended = () => recoverMediaIfNeeded();
+    }
+    toast("Camera reconnected", "fa-solid fa-video", "var(--success)");
+  } catch (e) {
+    console.error("Media recovery failed:", e);
+  }
+}
 
 // ── BOOT SEQUENCE ──
 async function startApp() {
@@ -1208,7 +1289,7 @@ function connectWebSocket() {
       const sid = d.sender || d.senderId || d.sessionId;
       
       // 🔴 GHOST BUG FIX: STRICTLY IGNORE MY OWN MESSAGES FROM SERVER ECHO
-      if (d.senderName === ME && d.type !== 'join_ack' && d.type !== 'mute_force') return;
+      if (d.senderName === ME && d.type !== 'join_ack' && d.type !== 'mute_force' && d.type !== 'chat_delete') return;
 
       if (d.senderName && sid) pNames[sid] = d.senderName;
 
@@ -1307,6 +1388,10 @@ function connectWebSocket() {
         case 'poll_vote':
           handlePollVote(d);
           return;
+
+        case 'chat_delete':
+          if (d.msgId) deleteMsg(d.msgId, false);
+          return;
       }
     };
 }
@@ -1319,6 +1404,7 @@ async function initMedia() {
         : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
     stream = await navigator.mediaDevices.getUserMedia(constraints);
+    attachEndedHandlers(stream);
     
     const lv = document.getElementById('lv');
     if (lv) {
@@ -1335,6 +1421,7 @@ async function initMedia() {
     console.error("Camera Error:", err);
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      attachEndedHandlers(stream);
       const lv = document.getElementById('lv');
       if (lv) { lv.srcObject = stream; lv.play().catch(e=>{}); }
       streamOk = true; 
@@ -1344,6 +1431,7 @@ async function initMedia() {
     } catch (e2) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          attachEndedHandlers(stream);
           streamOk = true; camOff = true; syncCamUI();
           document.getElementById('localNoCam').classList.add('show');
           tryJoin();
@@ -1526,8 +1614,9 @@ function createPC(pid, initiator) {
   };
 
   // ── RENEGOTIATION: fires when tracks are added/replaced after the first
-  // handshake (e.g. camera turned on after an audio-only fallback). Without
-  // this, remote peers never receive tracks added after the initial offer/answer.
+  // handshake (e.g. camera turned on after an audio-only fallback, or the
+  // camera self-healing swap above). Without this, remote peers never
+  // receive tracks added after the initial offer/answer.
   pc.onnegotiationneeded = async () => {
     if (!pc._negReady) return; // initial handshake is handled explicitly below/via incoming offer
     try {
@@ -1789,9 +1878,13 @@ function showTypingIndicator(name) {
     typingTimer = setTimeout(() => { indicator.classList.remove('show'); }, 2000);
 }
 
+function genMsgId() {
+  return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
 function sendChat() {
   const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
-  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg };
+  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg, msgId: genMsgId() };
   appendMsg(ME, msgObj, true);
   safeSend(msgObj);
   el.value = '';
@@ -1818,7 +1911,8 @@ function handleFileSelect(input) {
                 message: file.name,
                 isFile: true,
                 fileData: base64,
-                fileType: file.type
+                fileType: file.type,
+                msgId: genMsgId()
             };
             safeSend(msgObj);
             appendMsg(ME, msgObj, true);
@@ -1834,10 +1928,13 @@ function handleFileSelect(input) {
 // sender names and timestamps rendered as raw unstyled text that looked like
 // stray/duplicate "ghost" entries in the chat box. This also drops the fragile
 // `lastMsgSender` global in favor of reading the sender straight off the last
-// rendered bubble, so grouping stays correct across reconnects. ──
+// rendered bubble, so grouping stays correct across reconnects. Each bubble now
+// also carries data-msgid so it can be targeted for deletion, and shows a small
+// trash icon (on hover) for messages you sent yourself. ──
 function appendMsg(sender, data, isMe) {
   const c = document.getElementById('chatList');
   const text = typeof data === 'string' ? data : data.message;
+  const msgId = (typeof data === 'object' && data.msgId) ? data.msgId : genMsgId();
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const ind = document.getElementById('typingIndicator');
 
@@ -1868,6 +1965,8 @@ function appendMsg(sender, data, isMe) {
       }
   }
 
+  const delBtn = isMe ? `<button class="msg-del-btn" onclick="deleteMsg('${msgId}', true)" title="Delete for everyone"><i class="fa-solid fa-trash"></i></button>` : '';
+
   if (isGrouped) {
     // The previous bubble now has a follower: flip its trailing rounding.
     if (lastEl.classList.contains('grouped-top')) {
@@ -1879,21 +1978,43 @@ function appendMsg(sender, data, isMe) {
     const msg = document.createElement('div');
     msg.className = `cmsg ${isMe ? 'me' : ''} grouped-btm`;
     msg.dataset.sender = sender;
-    msg.innerHTML = `<div class="cm-body">${contentHtml}<span class="cm-t" style="margin-left:8px;">${now}</span></div>`;
+    msg.dataset.msgid = msgId;
+    msg.innerHTML = `<div class="cm-body">${contentHtml}<span class="cm-t" style="margin-left:8px;">${now}</span></div>${delBtn}`;
     if (ind) c.insertBefore(msg, ind); else c.appendChild(msg);
   } else {
     const msg = document.createElement('div');
     msg.className = `cmsg ${isMe ? 'me' : ''}`;
     msg.dataset.sender = sender;
+    msg.dataset.msgid = msgId;
     msg.innerHTML = `
       <div class="cm-hdr">
         <span class="cm-who">${isMe ? 'You' : esc(sender)}</span>
         <span class="cm-t">${now}</span>
       </div>
-      <div class="cm-body">${contentHtml}</div>`;
+      <div class="cm-body">${contentHtml}</div>${delBtn}`;
     if (ind) c.insertBefore(msg, ind); else c.appendChild(msg);
   }
   c.scrollTop = c.scrollHeight;
+}
+
+// Delete a single message. `notify` broadcasts the deletion to everyone else
+// in the room over the signaling socket; pass false when just applying a
+// deletion someone else already broadcast to us.
+function deleteMsg(msgId, notify) {
+  if (!msgId) return;
+  const el = document.querySelector(`.cmsg[data-msgid="${CSS.escape(msgId)}"]`);
+  if (el) el.remove();
+  if (notify) safeSend({ type: 'chat_delete', roomId: ROOM, msgId, senderName: ME });
+}
+
+// Clears the chat log from your own view only (local, no network message) —
+// handy for tidying up a long meeting's chat without affecting other people.
+function clearChatView() {
+  const c = document.getElementById('chatList');
+  Array.from(c.children).forEach(el => {
+    if (el.id !== 'typingIndicator' && !el.classList.contains('sys')) el.remove();
+  });
+  toast("Chat cleared (just for you)", "fa-solid fa-broom", "var(--text-sub)");
 }
 
 // ── LIVE POLLS SYSTEM ──
@@ -2015,6 +2136,7 @@ async function toggleCam() {
             : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
+          newTrack.onended = () => recoverMediaIfNeeded();
           stream.addTrack(newTrack);
           document.getElementById('lv').srcObject = stream;
           
@@ -2306,9 +2428,17 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function endCall() {
+  // Explicit "Leave" — this is the only place that actually tears everything
+  // down (stops camera/mic, closes peers & socket). Ambient lifecycle events
+  // above deliberately do NOT do this, so backgrounding the tab on a phone
+  // no longer kills your camera.
   sendLeaveSync();
+  if (ws && ws.readyState === WebSocket.OPEN) { try { ws.close(); } catch(e) {} }
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+  for (let pid in peers) { if (peers[pid]) peers[pid].close(); }
 
-  // 2. INSTANT UI TAKEDOWN (Feels incredibly fast to the user)
+  // INSTANT UI TAKEDOWN (Feels incredibly fast to the user)
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:var(--bg-dark);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Inter',sans-serif;">
         <i class="fa-solid fa-phone-slash" style="font-size:3rem;color:var(--danger);margin-bottom:20px;"></i>
@@ -2316,7 +2446,7 @@ function endCall() {
     </div>
   `;
 
-  // 3. WAIT ONLY 50ms FOR THE PACKET TO LEAVE THE BROWSER BEFORE REDIRECT
+  // WAIT ONLY 50ms FOR THE PACKET TO LEAVE THE BROWSER BEFORE REDIRECT
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
     
