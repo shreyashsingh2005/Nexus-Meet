@@ -1188,7 +1188,24 @@ const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.maxTouchPoints > 1 && /M
 
    >>> FOR PRODUCTION / 50+ PEOPLE: get your own free TURN key (metered.ca gives
        20GB/mo free) and paste the credentials below — a dedicated relay is the
-       single biggest reliability win for participants on mobile / strict NATs. */
+       single biggest reliability win for participants on mobile / strict NATs.
+
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │  ⚡ TO MAKE CROSS-NETWORK VIDEO WORK RELIABLY (recommended, ~2 min):      │
+   │                                                                           │
+   │  The free anonymous "openrelay" TURN servers below are frequently         │
+   │  rate-limited / offline, which is the usual cause of a remote tile that   │
+   │  stays black even though the person's name appears. To fix it for good:   │
+   │                                                                           │
+   │   1. Sign up free at  https://dashboard.metered.ca  (20 GB/month free).   │
+   │   2. Open your app → copy the SUBDOMAIN (e.g. "myapp" from                 │
+   │      myapp.metered.live) and the API key (looks like a long hex string).  │
+   │   3. Paste them into the two constants just below. That's it — the app    │
+   │      fetches a working relay at startup automatically.                    │
+   └─────────────────────────────────────────────────────────────────────────┘ */
+const METERED_SUBDOMAIN = '';   /* e.g. 'myapp'  (the part before .metered.live) */
+const METERED_API_KEY   = '';   /* your Metered TURN REST API key                */
+
 const ICE = {
   iceServers: [
     { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
@@ -1210,6 +1227,47 @@ const ICE = {
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require'
 };
+
+/* Runtime TURN loader.
+   If a Metered subdomain + API key are configured above, fetch a fresh, working
+   ICE-server array from Metered's TURN REST API and merge it into ICE.iceServers
+   BEFORE any RTCPeerConnection is created. This is the reliable path for
+   cross-network calls; the static list above is only a best-effort fallback.
+   The fetch is time-boxed so it can never hang the app if the network is slow.
+   Docs: https://www.metered.ca/docs/turn-rest-api/get-credentials-v2            */
+let turnReady = false;
+async function loadTurnCredentials() {
+  if (turnReady) return;
+  turnReady = true;
+  if (!METERED_SUBDOMAIN || !METERED_API_KEY) {
+    console.info('[TURN] No Metered key set — using best-effort public STUN/TURN only. ' +
+                 'Cross-network video may fail. See the ICE config comment to enable a relay.');
+    return;
+  }
+  const url = 'https://' + METERED_SUBDOMAIN + '.metered.live/api/v1/turn/credentials?apiKey=' +
+              encodeURIComponent(METERED_API_KEY);
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(function () { ctrl.abort(); }, 6000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const servers = await res.json();
+    if (Array.isArray(servers) && servers.length) {
+      /* keep our STUN entries, then append every server Metered returned */
+      const stun = ICE.iceServers.filter(function (s) {
+        const u = Array.isArray(s.urls) ? s.urls[0] : s.urls;
+        return typeof u === 'string' && u.indexOf('stun:') === 0;
+      });
+      ICE.iceServers = stun.concat(servers);
+      console.info('[TURN] Loaded ' + servers.length + ' live ICE servers from Metered.');
+    }
+  } catch (err) {
+    console.warn('[TURN] Could not fetch Metered credentials (' + (err && err.message) +
+                 '); falling back to static list.');
+  }
+}
+
 /* ── STATE ──────────────────────────────────────────── */
 const P = {};            /* pid -> peer record { pc, polite, queue, ... } */
 const pNames = {};       /* pid -> display name */
@@ -1249,14 +1307,14 @@ function fmtTime(sec) { return pad2(Math.floor(sec / 3600)) + ':' + pad2(Math.fl
 function nameOf(pid) { return pid === 'local' ? ME : (pNames[pid] || 'Participant'); }
 function peerCount() { return Object.keys(P).length; }
 
-function toast(msg, ico, clr) {
+function toast(msg, ico, clr, ms) {
   ico = ico || "fa-solid fa-circle-info"; clr = clr || "var(--primary)";
   const dock = $('toasts'); if (!dock) return;
   const el = document.createElement('div'); el.className = 'tst';
   el.innerHTML = '<i class="' + esc(ico) + '" style="color:' + esc(clr) + '"></i> <span>' + esc(msg) + '</span>';
   dock.appendChild(el);
   requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('show'); }); });
-  setTimeout(function () { el.classList.remove('show'); setTimeout(function () { el.remove(); }, 400); }, 3500);
+  setTimeout(function () { el.classList.remove('show'); setTimeout(function () { el.remove(); }, 400); }, ms || 3500);
 }
 /* ── AUDIO FEEDBACK (with WebAudio fallback if the CDN is blocked) ── */
 function beep(freq, dur, vol) {
@@ -1357,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', function () {
 async function startApp() {
   toast("Starting secure connection…", "fa-solid fa-shield-halved", "var(--primary)");
   await initMedia();
+  await loadTurnCredentials();   /* pull a working relay before any peer is built */
   connectWebSocket();
   enumerateDevices();
 }
@@ -2040,6 +2099,17 @@ async function flushQ(pid) {
 }
 
 /* ── Recovery: ICE restart first, full rebuild only if that fails ── */
+let turnHintShown = false;
+function maybeTurnHint() {
+  if (turnHintShown) return;
+  turnHintShown = true;
+  if (METERED_SUBDOMAIN && METERED_API_KEY) return;   /* a relay is already configured */
+  toast('Can’t reach the other side directly — a TURN relay is needed for this network. ' +
+        'See the ICE config note to add a free one.',
+        'fa-solid fa-tower-broadcast', 'var(--warning, #d97706)', 7000);
+  console.warn('[TURN] Peer never connected. On different networks a working TURN relay is required. ' +
+               'Add METERED_SUBDOMAIN + METERED_API_KEY at the top of the script.');
+}
 function startRecovery(pid, delay) {
   const rec = P[pid]; if (!rec || !rec.pc) return;
   if (rec.graceTimer) return;
@@ -2057,6 +2127,10 @@ function startRecovery(pid, delay) {
       } catch (e) { console.warn('restartIce', e); }
       startRecovery(pid, 8000);
     } else if (r.retries <= 4) {
+      /* Never connected once + repeated ICE failure ⇒ almost always a missing/
+         dead TURN relay (typical when the two peers are on different networks).
+         Surface it once so a black tile isn't mistaken for an app bug. */
+      if (!r.connectedOnce) maybeTurnHint();
       recreatePeer(pid);
     } else {
       toast('Lost connection to ' + (pNames[pid] || 'a participant'), 'fa-solid fa-plug-circle-xmark', 'var(--danger)');
