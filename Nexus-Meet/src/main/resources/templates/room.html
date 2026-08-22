@@ -357,7 +357,21 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   padding: 10px 14px; border-radius: 14px; font-size: 0.88rem;
   max-width: 85%; align-self: flex-start;
   animation: msgIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
+.msg-actions {
+  display: none; position: absolute; top: -10px; right: -10px;
+  background: var(--bg-panel); border: 1px solid var(--border-light);
+  border-radius: 8px; padding: 4px; gap: 4px; z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+.cmsg:hover .msg-actions { display: flex; }
+.msg-actions button {
+  background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+  padding: 4px; border-radius: 4px; font-size: 0.8rem; transition: 0.2s;
+}
+.msg-actions button:hover { background: rgba(239,68,68,0.2); color: var(--danger); }
+
 /* Smart Grouping styles */
 .cmsg.me { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.15); align-self: flex-end; }
 .cmsg.grouped-top { border-bottom-left-radius: 4px; margin-bottom: 2px; }
@@ -369,16 +383,31 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 
 @keyframes msgIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 .cm-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 12px; }
-.cm-who { font-weight: 600; color: var(--primary); font-size: 0.75rem; }
+.cm-who { font-weight: 600; color: var(--primary); font-size: 0.75rem; display: flex; align-items: center; justify-content: space-between; width: 100%;}
 .cmsg.me .cm-who { color: #93c5fd; }
 .cm-t { font-size: 0.65rem; color: var(--text-dim); white-space: nowrap; display: inline-block; float: right; margin-left: 8px;}
 .cm-body { color: var(--text-main); line-height: 1.55; word-break: break-word; }
 .cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
 .cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
 
+/* Poll UI in Chat */
+.poll-container {
+    background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.1);
+}
+.poll-q { font-weight: 700; margin-bottom: 10px; font-size: 0.95rem; }
+.poll-opt {
+    position: relative; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;
+    cursor: pointer; overflow: hidden; border: 1px solid transparent; transition: 0.2s; z-index: 1;
+}
+.poll-opt:hover { border-color: var(--primary); }
+.poll-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary-glow); z-index: -1; transition: width 0.4s ease; width: 0%;
+}
+.poll-opt-content { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; }
+
 .chat-foot {
-  padding: 20px; border-top: 1px solid rgba(255,255,255,0.04);
-  display: flex; gap: 10px; flex-shrink: 0; background: rgba(0,0,0,0.2); align-items: center;
+  padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.04);
+  display: flex; gap: 8px; flex-shrink: 0; background: rgba(0,0,0,0.2); align-items: center;
 }
 .chat-attach-label {
   background: transparent; border: none; color: var(--text-sub); 
@@ -390,12 +419,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .chat-inp {
   flex: 1; background: var(--glass); border: 1px solid rgba(255,255,255,0.08);
   padding: 14px 18px; border-radius: 14px; color: #fff; font-size: 0.92rem;
-  font-family: inherit; outline: none; transition: var(--transition-med);
+  font-family: inherit; outline: none; transition: var(--transition-med); min-width: 0;
 }
 .chat-inp::placeholder { color: var(--text-dim); }
 .chat-inp:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
 .chat-go {
-  background: var(--primary); color: #fff; border: none; width: 50px;
+  background: var(--primary); color: #fff; border: none; width: 48px;
   border-radius: 14px; cursor: pointer; font-size: 1.1rem;
   display: flex; align-items: center; justify-content: center;
   transition: var(--transition-med); flex-shrink: 0; height: 48px;
@@ -612,7 +641,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* ── MEETING INFO OVERLAY ── */
+/* ── MEETING INFO / POLL MODALS ── */
 .info-ov {
   position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);
   z-index: 200; display: none; align-items: center; justify-content: center;
@@ -800,7 +829,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 <!-- ── VIDEO STAGE ── -->
 <div id="stage" class="n1">
   <div class="tile" id="localTile">
-    <video id="lv" autoplay muted playsinline></video>
+    <!-- Notice Playsinline & webkit-playsinline for optimal iOS WebRTC behavior -->
+    <video id="lv" autoplay muted playsinline webkit-playsinline></video>
     <div class="pres-ov" id="localPres">
       <i class="fa-solid fa-display"></i>
       <span>You are presenting to everyone</span>
@@ -833,8 +863,23 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
   <div class="chat-foot">
     <label class="chat-attach-label" for="chatFileInp" title="Attach file"><i class="fa-solid fa-paperclip"></i></label>
     <input type="file" id="chatFileInp" style="display:none" onchange="handleFileSelect(this)">
+    <button class="chat-attach-label" onclick="togglePollModal()" title="Create Poll"><i class="fa-solid fa-square-poll-horizontal"></i></button>
     <input class="chat-inp" id="chatIn" type="text" placeholder="Type a message…" onkeypress="onCK(event)" maxlength="500" autocomplete="off">
     <button class="chat-go" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<!-- ── POLL CREATION MODAL ── -->
+<div class="info-ov" id="pollModalOv" onclick="togglePollModal()">
+  <div class="info-box" onclick="event.stopPropagation()">
+    <h2><i class="fa-solid fa-square-poll-horizontal"></i> Create a Poll</h2>
+    <input type="text" id="pollQuestion" class="chat-inp" placeholder="Ask a question..." style="width:100%;margin-bottom:12px;">
+    <div id="pollOptionsInputs">
+      <input type="text" class="chat-inp poll-opt-inp" placeholder="Option 1" style="width:100%;margin-bottom:8px;">
+      <input type="text" class="chat-inp poll-opt-inp" placeholder="Option 2" style="width:100%;margin-bottom:8px;">
+    </div>
+    <button onclick="addPollInput()" style="background:var(--glass);color:#fff;border:1px solid rgba(255,255,255,0.1);padding:8px;border-radius:8px;cursor:pointer;margin-bottom:14px;width:100%;">+ Add Option</button>
+    <button onclick="submitPoll()" style="background:var(--primary);color:#fff;border:none;padding:12px;width:100%;border-radius:12px;cursor:pointer;font-weight:600;font-size:0.95rem;">Send Poll</button>
   </div>
 </div>
 
@@ -1041,6 +1086,7 @@ if (!ME || ME === "null" || ME === "Guest User" || ME === "anonymousUser" || Str
 let rawId = new URLSearchParams(location.search).get('id');
 const ROOM = rawId ? rawId.trim() : 'nexus-default';
 
+let ws = null; // Defined properly globally
 let stream, screenStream, origVT;
 let peers = {}, queues = {}, pNames = {}, pAudio = {}, pStats = {};
 let wsOk = false, streamOk = false, joined = false;
@@ -1052,6 +1098,11 @@ let autoHideTimer = null;
 let lastMsgSender = null; 
 let typingTimeoutSend = null;
 let optimizeTimeout = null;
+let isHostState = false; // Internal tracking for host privileges
+
+// Polls internal tracking
+const activePolls = {};
+
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // ── FIXED ICE SERVERS FOR MOBILE NAT ──
@@ -1162,6 +1213,7 @@ function connectWebSocket() {
       switch (d.type) {
         case 'join_ack':
           if (d.isHost) {
+            isHostState = true;
             document.getElementById('muteAllBtn').style.display = 'flex';
             document.getElementById('hostBadge').style.display = 'flex';
           }
@@ -1239,10 +1291,33 @@ function connectWebSocket() {
           updateCount(); refreshParts(); optimizeForScaleDebounced();
           return;
 
+        /* Advanced Chat Responses */
         case 'chat':
           if (sid) {
-            appendMsg(d.senderName || 'Participant', d.message, false);
+            appendMsg(d.senderName || 'Participant', d.message, false, d.msgId);
             if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
+          }
+          return;
+
+        case 'delete_msg':
+          const m = document.querySelector(`[data-id="${d.msgId}"]`);
+          if (m) {
+            m.innerHTML = '<span style="color:var(--text-dim);font-style:italic;font-size:0.8rem;"><i class="fa-solid fa-ban"></i> This message was deleted</span>';
+            const actionMenu = m.querySelector('.msg-actions');
+            if(actionMenu) actionMenu.remove();
+          }
+          return;
+
+        case 'poll':
+          activePolls[d.pollId] = d.pollData;
+          appendPoll(d.senderName || 'Participant', d.pollData, false, d.pollId);
+          if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
+          return;
+
+        case 'poll_vote':
+          if (activePolls[d.pollId]) {
+              activePolls[d.pollId].votes[sid] = d.optionIndex;
+              updatePollUI(d.pollId);
           }
           return;
       }
@@ -1252,8 +1327,9 @@ function connectWebSocket() {
 // ── MEDIA INIT ──
 async function initMedia() {
   try {
+    // 🔥 MOBILE FIX: Simplified constraints for mobile compatibility
     const constraints = isMobileDevice 
-        ? { video: { facingMode: "user", width: { ideal: 480 }, frameRate: { ideal: 15 } }, audio: { echoCancellation: true, noiseSuppression: true } }
+        ? { video: { facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } }
         : { video: { width: { ideal: hdMode ? 1280 : 640 }, height: { ideal: hdMode ? 720 : 360 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
     
     stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -1261,6 +1337,7 @@ async function initMedia() {
     const lv = document.getElementById('lv');
     if (lv) {
         lv.srcObject = stream;
+        lv.muted = true; // explicitly set to ensure mobile auto-play works
         lv.play().catch(e => console.log("Video Play Error:", e)); 
     }
     
@@ -1274,7 +1351,7 @@ async function initMedia() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const lv = document.getElementById('lv');
-      if (lv) { lv.srcObject = stream; lv.play().catch(e=>{}); }
+      if (lv) { lv.srcObject = stream; lv.muted = true; lv.play().catch(e=>{}); }
       streamOk = true; 
       document.getElementById('localNoCam').classList.remove('show');
       tryJoin();
@@ -1532,6 +1609,7 @@ function addTile(pid, s) {
   const vid = document.createElement('video');
   vid.autoplay = true; vid.playsInline = true; vid.muted = false; vid.srcObject = s;
   vid.setAttribute('playsinline', 'playsinline'); 
+  vid.setAttribute('webkit-playsinline', 'webkit-playsinline'); // Important for iOS Safari
 
   const name = pNames[pid] || 'Participant';
   const lbl = document.createElement('div'); lbl.className = 'tlbl';
@@ -1685,7 +1763,7 @@ function togglePanel(name) {
   if (name === 'p') refreshParts();
 }
 
-// ── ADVANCED CHAT ──
+// ── ADVANCED CHAT & POLLS ──
 let typingTimer;
 function showTypingIndicator(name) {
     let indicator = document.getElementById('typingIndicator');
@@ -1709,10 +1787,15 @@ function showTypingIndicator(name) {
 }
 
 function sendChat() {
-  const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
-  appendMsg(ME, msg, true);
-  safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg });
+  const el = document.getElementById('chatIn'); 
+  const msg = el.value.trim(); 
+  if (!msg) return;
+
+  const msgId = 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  appendMsg(ME, msg, true, msgId);
+  safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg, msgId: msgId });
   el.value = '';
+  
   const ind = document.getElementById('typingIndicator');
   if(ind) ind.classList.remove('show');
 }
@@ -1726,7 +1809,23 @@ function handleFileSelect(input) {
     }
 }
 
-function appendMsg(sender, text, isMe) {
+function triggerDeleteMsg(msgId, isEveryone) {
+    if(!confirm(isEveryone ? "Delete this message for everyone?" : "Delete this message for yourself?")) return;
+    
+    const msgEl = document.querySelector(`[data-id="${msgId}"]`);
+    if(msgEl) {
+        if(isEveryone) {
+            safeSend({ type: 'delete_msg', roomId: ROOM, msgId: msgId });
+            msgEl.innerHTML = '<span style="color:var(--text-dim);font-style:italic;font-size:0.8rem;"><i class="fa-solid fa-ban"></i> You deleted this message</span>';
+            const actionMenu = msgEl.querySelector('.msg-actions');
+            if(actionMenu) actionMenu.remove();
+        } else {
+            msgEl.remove();
+        }
+    }
+}
+
+function appendMsg(sender, text, isMe, msgId) {
   const c = document.getElementById('chatList');
   let isGrouped = false;
   let classes = `cmsg ${isMe ? 'me' : ''}`;
@@ -1751,22 +1850,127 @@ function appendMsg(sender, text, isMe) {
 
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const ind = document.getElementById('typingIndicator');
+  
+  // Advanced Delete Options Menu
+  const deleteActions = `
+    <div class="msg-actions">
+        <button onclick="triggerDeleteMsg('${msgId}', false)" title="Delete for me"><i class="fa-solid fa-trash-can"></i></button>
+        ${(isMe || isHostState) ? `<button onclick="triggerDeleteMsg('${msgId}', true)" title="Delete for everyone"><i class="fa-solid fa-dumpster-fire"></i></button>` : ''}
+    </div>
+  `;
 
   if(isGrouped) {
       const msgDiv = document.createElement('div');
       msgDiv.className = classes;
-      msgDiv.innerHTML = `${esc(text)} <span class="cmsg-time">${now}</span>`;
+      msgDiv.setAttribute('data-id', msgId);
+      msgDiv.innerHTML = `${esc(text)} <span class="cm-t">${now}</span> ${deleteActions}`;
       lastMsgGroup.appendChild(msgDiv);
   } else {
       const group = document.createElement('div');
       group.className = `cmsg-group ${isMe ? 'me' : ''}`;
-      group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>
-        <div class="${classes}">${esc(text)} <span class="cmsg-time">${now}</span></div>`;
+      group.innerHTML = `<div class="cm-who">${isMe ? 'You' : esc(sender)}</div>
+        <div class="${classes}" data-id="${msgId}">${esc(text)} <span class="cm-t">${now}</span> ${deleteActions}</div>`;
       
       if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
   }
   c.scrollTop = c.scrollHeight;
 }
+
+// ── POLL LOGIC ──
+function togglePollModal() {
+    document.getElementById('pollModalOv').classList.toggle('show');
+}
+function addPollInput() {
+    const container = document.getElementById('pollOptionsInputs');
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'chat-inp poll-opt-inp';
+    input.placeholder = `Option ${container.children.length + 1}`;
+    input.style.width = '100%'; input.style.marginBottom = '8px';
+    container.appendChild(input);
+}
+function submitPoll() {
+    const q = document.getElementById('pollQuestion').value.trim();
+    if(!q) return;
+    const optInputs = document.querySelectorAll('.poll-opt-inp');
+    const options = [];
+    optInputs.forEach(i => { if(i.value.trim()) options.push(i.value.trim()); });
+    if(options.length < 2) {
+        toast("Please provide at least 2 options", "fa-solid fa-circle-exclamation", "var(--warning)");
+        return;
+    }
+    
+    const pollId = 'p_' + Date.now();
+    const pollData = { question: q, options: options, votes: {} };
+    activePolls[pollId] = pollData;
+    
+    appendPoll(ME, pollData, true, pollId);
+    safeSend({ type: 'poll', roomId: ROOM, senderName: ME, pollId: pollId, pollData: pollData });
+    
+    togglePollModal();
+    document.getElementById('pollQuestion').value = '';
+    document.getElementById('pollOptionsInputs').innerHTML = `
+        <input type="text" class="chat-inp poll-opt-inp" placeholder="Option 1" style="width:100%;margin-bottom:8px;">
+        <input type="text" class="chat-inp poll-opt-inp" placeholder="Option 2" style="width:100%;margin-bottom:8px;">
+    `;
+}
+
+function appendPoll(sender, pollData, isMe, pollId) {
+    const c = document.getElementById('chatList');
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    let html = `<div class="cmsg-group ${isMe ? 'me' : ''}">
+        <div class="cm-who"><i class="fa-solid fa-square-poll-horizontal"></i> ${isMe ? 'You' : esc(sender)} created a poll</div>
+        <div class="cmsg poll-container" id="poll-${pollId}">
+            <div class="poll-q">${esc(pollData.question)}</div>`;
+            
+    pollData.options.forEach((opt, idx) => {
+        html += `<div class="poll-opt" onclick="votePoll('${pollId}', ${idx})">
+                    <div class="poll-bar" id="pbar-${pollId}-${idx}"></div>
+                    <div class="poll-opt-content">
+                        <span>${esc(opt)}</span>
+                        <span id="pct-${pollId}-${idx}">0%</span>
+                    </div>
+                 </div>`;
+    });
+    
+    html += `<div class="cm-t" style="margin-top:6px;width:100%;text-align:right;">${now}</div></div></div>`;
+    
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    c.appendChild(div.firstElementChild);
+    c.scrollTop = c.scrollHeight;
+    lastMsgSender = null; // Reset grouping after poll
+}
+
+function votePoll(pollId, optIdx) {
+    if(!activePolls[pollId]) return;
+    activePolls[pollId].votes['local'] = optIdx; // Register local vote
+    updatePollUI(pollId);
+    safeSend({ type: 'poll_vote', roomId: ROOM, pollId: pollId, optionIndex: optIdx });
+}
+
+function updatePollUI(pollId) {
+    const poll = activePolls[pollId];
+    if(!poll) return;
+    
+    // Calculate totals
+    const counts = new Array(poll.options.length).fill(0);
+    let totalVotes = 0;
+    for(const uid in poll.votes) {
+        counts[poll.votes[uid]]++;
+        totalVotes++;
+    }
+    
+    // Update DOM
+    poll.options.forEach((_, idx) => {
+        const pct = totalVotes === 0 ? 0 : Math.round((counts[idx] / totalVotes) * 100);
+        const bar = document.getElementById(`pbar-${pollId}-${idx}`);
+        const pctText = document.getElementById(`pct-${pollId}-${idx}`);
+        if(bar) bar.style.width = pct + '%';
+        if(pctText) pctText.textContent = pct + '%';
+    });
+}
+
 
 // ── CONTROLS ──
 async function toggleCam() {
@@ -1775,7 +1979,7 @@ async function toggleCam() {
   if (!track) {
       try {
           const constraints = isMobileDevice 
-            ? { video: { facingMode: "user", width: { ideal: 480 } } } 
+            ? { video: { facingMode: "user" } } // Loosened mobile constraints to prevent failures
             : { video: true };
           const vidStream = await navigator.mediaDevices.getUserMedia(constraints);
           const newTrack = vidStream.getVideoTracks()[0];
@@ -2023,6 +2227,7 @@ document.addEventListener('keydown', e => {
       document.getElementById('rpop').classList.remove('show');
       document.getElementById('scOver').classList.remove('show');
       document.getElementById('infoOv').classList.remove('show');
+      document.getElementById('pollModalOv').classList.remove('show');
       if (activePanel) togglePanel(activePanel);
       break;
   }
