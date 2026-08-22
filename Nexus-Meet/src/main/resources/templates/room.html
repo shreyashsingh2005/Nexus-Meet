@@ -376,6 +376,36 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
 .cmsg.sys { background: transparent; border: none; text-align: center; max-width: 100%; align-self: center;}
 .cmsg.sys .cm-who { color: var(--success); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; font-weight: 600;}
 
+/* ── SMART CHAT & POLLS ── */
+.chat-file-preview { margin-top: 6px; border-radius: 8px; overflow: hidden; max-width: 100%; border: 1px solid rgba(255,255,255,0.1); }
+.chat-file-preview img { width: 100%; display: block; object-fit: cover; max-height: 200px; }
+.chat-doc-btn { 
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 8px 12px; 
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+    border-radius: 8px; color: var(--text-main); text-decoration: none; font-size: 0.8rem; font-weight: 600; 
+    transition: 0.2s;
+}
+.chat-doc-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
+
+.chat-poll {
+    background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-top: 6px;
+    border: 1px solid rgba(255,255,255,0.05); width: 280px; max-width: 100%;
+}
+.chat-poll h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
+.poll-opt {
+    position: relative; padding: 8px 12px; margin-bottom: 6px; border-radius: 8px;
+    background: rgba(255,255,255,0.05); cursor: pointer; overflow: hidden; transition: 0.2s;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid transparent;
+}
+.poll-opt:hover { background: rgba(255,255,255,0.1); }
+.poll-opt.voted { border-color: var(--primary); }
+.poll-opt span { position: relative; z-index: 2; font-size: 0.85rem; font-weight: 500; }
+.poll-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; background: var(--primary-glow);
+    width: 0%; z-index: 1; transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .chat-foot {
   padding: 20px; border-top: 1px solid rgba(255,255,255,0.04);
   display: flex; gap: 10px; flex-shrink: 0; background: rgba(0,0,0,0.2); align-items: center;
@@ -831,8 +861,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
     </div>
   </div>
   <div class="chat-foot">
-    <label class="chat-attach-label" for="chatFileInp" title="Attach file"><i class="fa-solid fa-paperclip"></i></label>
-    <input type="file" id="chatFileInp" style="display:none" onchange="handleFileSelect(this)">
+    <label class="chat-attach-label" for="chatFileInp" title="Attach file (<300KB)"><i class="fa-solid fa-paperclip"></i></label>
+    <input type="file" id="chatFileInp" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="handleFileSelect(this)">
+    <button class="chat-attach-label" onclick="togglePollModal()" title="Create a Poll"><i class="fa-solid fa-square-poll-horizontal"></i></button>
     <input class="chat-inp" id="chatIn" type="text" placeholder="Type a message…" onkeypress="onCK(event)" maxlength="500" autocomplete="off">
     <button class="chat-go" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
@@ -932,6 +963,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-dark); color: 
       <span class="info-key">Your Name</span>
       <span class="info-val" id="infoName">—</span>
     </div>
+  </div>
+</div>
+
+<!-- ── POLL MODAL ── -->
+<div class="sco" id="pollModal" onclick="togglePollModal()">
+  <div class="scb" onclick="event.stopPropagation()">
+    <h2><i class="fa-solid fa-square-poll-horizontal"></i> Create Live Poll</h2>
+    <input type="text" id="pollQ" placeholder="Ask a question..." class="p-search" style="margin-bottom:14px; padding: 14px 16px;">
+    <input type="text" id="pollOpt1" placeholder="Option 1" class="p-search" style="margin-bottom:10px;">
+    <input type="text" id="pollOpt2" placeholder="Option 2" class="p-search" style="margin-bottom:10px;">
+    <input type="text" id="pollOpt3" placeholder="Option 3 (Optional)" class="p-search" style="margin-bottom:10px;">
+    <button class="chat-go" style="width:100%; border-radius: 12px; margin-top: 10px;" onclick="submitPoll()">Send Poll</button>
   </div>
 </div>
 
@@ -1053,6 +1096,7 @@ let lastMsgSender = null;
 let typingTimeoutSend = null;
 let optimizeTimeout = null;
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let activePolls = {}; 
 
 // ── FIXED ICE SERVERS FOR MOBILE NAT ──
 const ICE = {
@@ -1105,6 +1149,10 @@ function sendLeaveSync() {
         // Force closing the socket guarantees the backend instantly triggers its 'disconnect' routine
         ws.close(); 
     }
+    // Instant 0 second kill
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    for (let pid in peers) { if (peers[pid]) peers[pid].close(); }
 }
 window.addEventListener('beforeunload', sendLeaveSync);
 window.addEventListener('pagehide', sendLeaveSync);
@@ -1243,9 +1291,18 @@ function connectWebSocket() {
 
         case 'chat':
           if (sid) {
-            appendMsg(d.senderName || 'Participant', d.message, false);
+            appendMsg(d.senderName || 'Participant', d, false);
             if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
           }
+          return;
+          
+        case 'poll_create':
+          handlePollCreate(d);
+          if (activePanel !== 'c') document.getElementById('chatDot').classList.add('show');
+          return;
+          
+        case 'poll_vote':
+          handlePollVote(d);
           return;
       }
     };
@@ -1714,8 +1771,9 @@ function showTypingIndicator(name) {
 
 function sendChat() {
   const el = document.getElementById('chatIn'); const msg = el.value.trim(); if (!msg) return;
-  appendMsg(ME, msg, true);
-  safeSend({ type: 'chat', roomId: ROOM, senderName: ME, message: msg });
+  const msgObj = { type: 'chat', roomId: ROOM, senderName: ME, message: msg };
+  appendMsg(ME, msgObj, true);
+  safeSend(msgObj);
   el.value = '';
   const ind = document.getElementById('typingIndicator');
   if(ind) ind.classList.remove('show');
@@ -1724,16 +1782,38 @@ function onCK(e) { if (e.key === 'Enter') sendChat(); }
 
 function handleFileSelect(input) {
     if(input.files && input.files[0]) {
-        const fileName = input.files[0].name;
-        toast(`File ${esc(fileName)} ready for secure transfer.`, "fa-solid fa-file-shield", "var(--success)");
+        const file = input.files[0];
+        if (file.size > 300 * 1024) { 
+            toast("File too large! Max size is 300KB.", "fa-solid fa-triangle-exclamation", "var(--danger)");
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result;
+            const msgObj = {
+                type: 'chat',
+                roomId: ROOM,
+                senderName: ME,
+                message: file.name,
+                isFile: true,
+                fileData: base64,
+                fileType: file.type
+            };
+            safeSend(msgObj);
+            appendMsg(ME, msgObj, true);
+        };
+        reader.readAsDataURL(file);
         input.value = '';
     }
 }
 
-function appendMsg(sender, text, isMe) {
+function appendMsg(sender, data, isMe) {
   const c = document.getElementById('chatList');
   let isGrouped = false;
   let classes = `cmsg ${isMe ? 'me' : ''}`;
+  
+  const text = typeof data === 'string' ? data : data.message;
   
   const children = Array.from(c.children);
   let lastMsgGroup = null;
@@ -1756,20 +1836,146 @@ function appendMsg(sender, text, isMe) {
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const ind = document.getElementById('typingIndicator');
 
+  let contentHtml = esc(text);
+  if (data && data.isFile) {
+      if (data.fileType.startsWith('image/')) {
+          contentHtml = `
+            <div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:4px;">${esc(text)}</div>
+            <div class="chat-file-preview">
+                <a href="${data.fileData}" download="${esc(text)}">
+                    <img src="${data.fileData}" alt="Image Attachment" />
+                </a>
+            </div>`;
+      } else {
+          contentHtml = `
+            <a href="${data.fileData}" download="${esc(text)}" class="chat-doc-btn">
+                <i class="fa-solid fa-file-arrow-down" style="color:var(--primary);"></i> Download ${esc(text)}
+            </a>`;
+      }
+  }
+
   if(isGrouped) {
       const msgDiv = document.createElement('div');
       msgDiv.className = classes;
-      msgDiv.innerHTML = `${esc(text)} <span class="cmsg-time">${now}</span>`;
+      msgDiv.innerHTML = `${contentHtml} <span class="cmsg-time">${now}</span>`;
       lastMsgGroup.appendChild(msgDiv);
   } else {
       const group = document.createElement('div');
       group.className = `cmsg-group ${isMe ? 'me' : ''}`;
       group.innerHTML = `<div class="cmsg-sender">${isMe ? 'You' : esc(sender)}</div>
-        <div class="${classes}">${esc(text)} <span class="cmsg-time">${now}</span></div>`;
+        <div class="${classes}">${contentHtml} <span class="cmsg-time">${now}</span></div>`;
       
       if(ind) { c.insertBefore(group, ind); } else { c.appendChild(group); }
   }
   c.scrollTop = c.scrollHeight;
+}
+
+// ── LIVE POLLS SYSTEM ──
+function togglePollModal() {
+    document.getElementById('pollModal').classList.toggle('show');
+}
+
+function submitPoll() {
+    const q = document.getElementById('pollQ').value.trim();
+    const o1 = document.getElementById('pollOpt1').value.trim();
+    const o2 = document.getElementById('pollOpt2').value.trim();
+    const o3 = document.getElementById('pollOpt3').value.trim();
+    
+    if (!q || !o1 || !o2) {
+        toast("Question and at least 2 options required", "fa-solid fa-triangle-exclamation", "var(--warning)");
+        return;
+    }
+    
+    const options = [o1, o2];
+    if (o3) options.push(o3);
+    
+    const pollId = 'poll_' + Date.now();
+    const pollData = {
+        type: 'poll_create',
+        roomId: ROOM,
+        pollId: pollId,
+        senderName: ME,
+        question: q,
+        options: options
+    };
+    
+    togglePollModal();
+    
+    document.getElementById('pollQ').value = '';
+    document.getElementById('pollOpt1').value = '';
+    document.getElementById('pollOpt2').value = '';
+    document.getElementById('pollOpt3').value = '';
+    
+    handlePollCreate(pollData); // Render locally
+    safeSend(pollData); // Sync with network
+}
+
+function handlePollCreate(data) {
+    activePolls[data.pollId] = {
+        question: data.question,
+        options: data.options.map(opt => ({ text: opt, votes: 0 })),
+        totalVotes: 0,
+        hasVoted: false
+    };
+    
+    const c = document.getElementById('chatList');
+    const pollDiv = document.createElement('div');
+    pollDiv.className = 'chat-poll';
+    pollDiv.id = data.pollId;
+    
+    let optsHtml = '';
+    data.options.forEach((opt, idx) => {
+        optsHtml += `
+            <div class="poll-opt" id="opt_${data.pollId}_${idx}" onclick="castVote('${data.pollId}', ${idx})">
+                <div class="poll-bar" id="bar_${data.pollId}_${idx}"></div>
+                <span>${esc(opt)}</span>
+                <span id="vc_${data.pollId}_${idx}" style="font-weight:700; z-index:2;">0%</span>
+            </div>
+        `;
+    });
+    
+    pollDiv.innerHTML = `
+        <div style="font-size:0.75rem; color:var(--primary); font-weight:600; margin-bottom:6px;"><i class="fa-solid fa-square-poll-horizontal"></i> Poll by ${esc(data.senderName)}</div>
+        <h4>${esc(data.question)}</h4>
+        ${optsHtml}
+        <div style="font-size:0.7rem; color:var(--text-dim); text-align:right; margin-top:8px;" id="total_${data.pollId}">0 votes</div>
+    `;
+    
+    c.appendChild(pollDiv);
+    c.scrollTop = c.scrollHeight;
+}
+
+function castVote(pollId, optionIdx) {
+    if (activePolls[pollId].hasVoted) return; 
+    activePolls[pollId].hasVoted = true;
+    
+    document.getElementById(`opt_${pollId}_${optionIdx}`).classList.add('voted');
+    
+    const voteData = {
+        type: 'poll_vote',
+        roomId: ROOM,
+        pollId: pollId,
+        optionIdx: optionIdx
+    };
+    
+    handlePollVote(voteData); // Local
+    safeSend(voteData); // Network
+}
+
+function handlePollVote(data) {
+    const poll = activePolls[data.pollId];
+    if (!poll) return;
+    
+    poll.options[data.optionIdx].votes++;
+    poll.totalVotes++;
+    
+    document.getElementById(`total_${data.pollId}`).textContent = `${poll.totalVotes} votes`;
+    
+    poll.options.forEach((opt, idx) => {
+        const pct = poll.totalVotes > 0 ? Math.round((opt.votes / poll.totalVotes) * 100) : 0;
+        document.getElementById(`bar_${data.pollId}_${idx}`).style.width = pct + '%';
+        document.getElementById(`vc_${data.pollId}_${idx}`).textContent = pct + '%';
+    });
 }
 
 // ── CONTROLS ──
@@ -2027,6 +2233,7 @@ document.addEventListener('keydown', e => {
       document.getElementById('rpop').classList.remove('show');
       document.getElementById('scOver').classList.remove('show');
       document.getElementById('infoOv').classList.remove('show');
+      document.getElementById('pollModal').classList.remove('show');
       if (activePanel) togglePanel(activePanel);
       break;
   }
@@ -2073,10 +2280,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function endCall() {
-  // 1. INSTANT SERVER NOTIFICATION
-  if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'leave', roomId: ROOM, senderName: ME }));
-  }
+  sendLeaveSync();
 
   // 2. INSTANT UI TAKEDOWN (Feels incredibly fast to the user)
   document.body.innerHTML = `
@@ -2090,17 +2294,9 @@ function endCall() {
   setTimeout(() => {
     window.removeEventListener('beforeunload', onBU);
     
-    // Kill hardware accesses instantly
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-    
     // Kill WebRTC memory leaks
     if (aCtx) { try { aCtx.close(); } catch(e){} }
     for (const id in pAudio) { try { pAudio[id].ctx.close(); } catch(e) {} }
-    for (const pid in peers) { try { peers[pid].close(); } catch(e) {} }
-    
-    // Force Kill WS
-    if (ws) { try { ws.close(); } catch(e) {} }
     
     // Exit
     window.location.href = '/dashboard';
